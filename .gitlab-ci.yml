@@ -1,0 +1,24 @@
+variables:
+    GIT_STRATEGY: "clone"
+    BUILD_IMAGE_CENTOS8: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:dpdk-21-11-mlx5-el8"
+    BUILD_ROOT_DIR: /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH/build
+
+stages:
+    - build
+    - package
+
+.build_before_script:
+    before_script:
+        - cp $CI_PROJECT_DIR/el8.repo.internal.geedge.net.repo /etc/yum.repos.d
+        - yum install -y libmaatframe-devel
+        - pip3 install msgpack
+        - mkdir -p /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_NAMESPACE/
+        - ln -s $CI_PROJECT_DIR /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
+        - cd /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
+
+.build:
+    stage: build
+    extends: .build_before_script
+    image: ${BUILD_IMAGE_CENTOS8}
+    tags:
+        - share
