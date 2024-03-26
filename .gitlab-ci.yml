@@ -2,11 +2,9 @@ variables:
     GIT_STRATEGY: "clone"
     BUILD_IMAGE_CENTOS8: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:dpdk-21-11-mlx5-el8"
     ROOT_DIR: /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
-    BUILD_ROOT_DIR: $ROOT_DIR/build
 
 stages:
     - build
-    - package
 
 .build_before_script:
     before_script:
@@ -29,3 +27,14 @@ stages:
     image: ${BUILD_IMAGE_CENTOS8}
     tags:
         - share
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make VERBOSE=1
+
+build:
+    extends: .build
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
