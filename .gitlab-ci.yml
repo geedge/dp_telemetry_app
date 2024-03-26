@@ -1,7 +1,8 @@
 variables:
     GIT_STRATEGY: "clone"
     BUILD_IMAGE_CENTOS8: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:dpdk-21-11-mlx5-el8"
-    BUILD_ROOT_DIR: /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH/build
+    ROOT_DIR: /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
+    BUILD_ROOT_DIR: $ROOT_DIR/build
 
 stages:
     - build
@@ -9,12 +10,18 @@ stages:
 
 .build_before_script:
     before_script:
-        - cp $CI_PROJECT_DIR/el8.repo.internal.geedge.net.repo /etc/yum.repos.d
+        - mkdir -p ~/.ssh
+        - eval $(ssh-agent -s)
+        - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+        - chmod 644 ~/.ssh/config
+        - ssh-add <(echo "$MARSIO_PRIVATE_KEY")
+        - cp $CI_PROJECT_DIR/ci/el8.repo.internal.geedge.net.repo /etc/yum.repos.d
         - yum install -y libmaatframe-devel
+        - yum install -y libuuid-devel
         - pip3 install msgpack
         - mkdir -p /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_NAMESPACE/
-        - ln -s $CI_PROJECT_DIR /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
-        - cd /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
+        - ln -s $CI_PROJECT_DIR $ROOT_DIR
+        - cd $ROOT_DIR
 
 .build:
     stage: build
