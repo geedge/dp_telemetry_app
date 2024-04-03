@@ -14,7 +14,7 @@ stages:
         - chmod 644 ~/.ssh/config
         - ssh-add <(echo "$MARSIO_PRIVATE_KEY")
         - cp $CI_PROJECT_DIR/ci/el8.repo.internal.geedge.net.repo /etc/yum.repos.d
-        - yum install -y libmaatframe-devel
+        - yum install -y libmaatframe-devel libMESA_prof_load-devel
         - yum install -y libuuid-devel
         - pip3 install msgpack
         - mkdir -p /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_NAMESPACE/
