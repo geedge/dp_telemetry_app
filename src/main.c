@@ -75,7 +75,8 @@ int main(int argc, char * argv[])
     dynamic_config_load();
     dp_trace_output_init();
     dynamic_config_apply();
-    dynamic_config_reload_thread_create();
+
+    dynamic_config_reload_init();
 
     unsigned int nr_thread = CPU_COUNT(&conf->cpu_set_io);
 
