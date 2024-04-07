@@ -22,6 +22,16 @@
 
 #define TELEMETRY_DIM(a) (sizeof(a) / sizeof((a)[0]))
 
+#define CHECK_OR_EXIT(condition, fmt, ...)                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(condition))                                                                                              \
+        {                                                                                                              \
+            syslog(LOG_ERR, fmt, ##__VA_ARGS__);                                                                       \
+            exit(EXIT_FAILURE);                                                                                        \
+        }                                                                                                              \
+    } while (0)
+
 extern struct mr_instance * mr_instance;
 extern struct config * g_conf;
 

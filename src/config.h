@@ -1,5 +1,8 @@
 #pragma once
 #include "common.h"
+
+#include <event.h>
+
 #include <limits.h>
 #include <sched.h>
 #include <stdint.h>
@@ -12,6 +15,9 @@ struct config
     cpu_set_t cpu_set_io;
     uint8_t log_level;
 
+    struct event_base * evbase;
+    struct event * evsignal[8];
+
     char dp_trace_dir[PATH_MAX];
     unsigned int dp_trace_file_max_size_in_KB;
     unsigned int dp_trace_merge_timeout;
@@ -22,4 +28,4 @@ struct config * config_create();
 void config_load();
 void dynamic_config_load();
 void dynamic_config_apply();
-void dynamic_config_reload_thread_create();
+void dynamic_config_reload_init();

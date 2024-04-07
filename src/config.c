@@ -19,11 +19,7 @@ struct config * g_conf = NULL;
 struct config * config_create()
 {
     struct config * conf = calloc(1, sizeof(struct config));
-    if (conf == NULL)
-    {
-        syslog(LOG_ERR, "calloc failed: %s", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    CHECK_OR_EXIT(conf, "calloc failed: %s", strerror(errno));
 
     g_conf = conf;
     return conf;
@@ -134,61 +130,45 @@ void dynamic_config_apply()
     job_rule_apply(g_conf->desc, TELEMETRY_DIM(g_conf->desc));
 }
 
-void * dynamic_config_reload_handler(void * arg)
+static void signal_handler(evutil_socket_t fd, short what, void * arg)
 {
-    ssize_t s;
-    uintptr_t sfd = (uintptr_t)arg;
-    struct signalfd_siginfo fdsi;
 
-    pthread_detach(pthread_self());
-
-    while (1)
+    switch (fd)
     {
-        s = read(sfd, &fdsi, sizeof(fdsi));
-        if (s != sizeof(fdsi))
-        {
-            continue;
-        }
-
-        if (fdsi.ssi_signo != SIGHUP)
-        {
-            continue;
-        }
-
+    case SIGHUP:
         dynamic_config_load();
         dynamic_config_apply();
+    default:
+        syslog(LOG_WARNING, "Received unexpected signal: %d", fd);
     }
-
-    close(sfd);
-    return (void *)NULL;
 }
 
-void dynamic_config_reload_thread_create()
+static void * dynamic_config_reload_thread_dispatch(void * arg)
 {
-    int sfd;
-    int ret = 0;
-    sigset_t mask;
-    pthread_t thread_id;
+    struct event_base * base = (struct event_base *)arg;
+    event_base_dispatch(base);
+    return NULL;
+}
 
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGHUP);
+void dynamic_config_reload_init()
+{
+    static int signals[] = {SIGHUP};
 
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+    g_conf->evbase = event_base_new();
+
+    CHECK_OR_EXIT(g_conf->evbase, "event_base_new failed");
+
+    for (unsigned int i = 0; i < TELEMETRY_DIM(signals); i++)
     {
-        syslog(LOG_ERR, "SIGHUP: sigprocmask failed : %s", strerror(errno));
-        exit(EXIT_FAILURE);
+        g_conf->evsignal[i] = evsignal_new(g_conf->evbase, signals[i], signal_handler, NULL);
+        CHECK_OR_EXIT(g_conf->evsignal[i], "create signal event failed. signal is:%d", signals[i]);
+        evsignal_add(g_conf->evsignal[i], NULL);
     }
 
-    sfd = signalfd(-1, &mask, 0);
-    if (sfd == -1)
+    pthread_t tid;
+    if (pthread_create(&tid, NULL, dynamic_config_reload_thread_dispatch, g_conf->evbase) != 0)
     {
-        syslog(LOG_ERR, "SIGHUP: signalfd failed : %s", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (pthread_create(&thread_id, NULL, dynamic_config_reload_handler, (void *)(uintptr_t)sfd) != 0)
-    {
-        syslog(LOG_ERR, "Failed to create dynamic config reload thread: %s", strerror(errno));
+        syslog(LOG_ERR, "failed to create thread for event_base dispatch");
         exit(EXIT_FAILURE);
     }
 }
