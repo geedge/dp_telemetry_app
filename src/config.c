@@ -51,6 +51,15 @@ void config_load()
         exit(EXIT_FAILURE);
     }
     g_conf->log_level = loglevel;
+
+    MESA_load_profile_string_def(g_conf->config_path, "kafka", "borker_list", g_conf->broker_list,
+                                 sizeof(g_conf->broker_list), "");
+    MESA_load_profile_string_def(g_conf->config_path, "kafka", "topic_name", g_conf->topic_name,
+                                 sizeof(g_conf->topic_name), "");
+    MESA_load_profile_string_def(g_conf->config_path, "kafka", "sasl_username", g_conf->sasl_username,
+                                 sizeof(g_conf->sasl_username), "");
+    MESA_load_profile_string_def(g_conf->config_path, "kafka", "sasl_password", g_conf->sasl_password,
+                                 sizeof(g_conf->sasl_password), "");
 }
 
 void dynamic_config_load()
