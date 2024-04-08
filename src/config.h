@@ -2,6 +2,7 @@
 #include "common.h"
 
 #include <event.h>
+#include <librdkafka/rdkafka.h>
 
 #include <limits.h>
 #include <sched.h>
@@ -15,9 +16,19 @@ struct config
     cpu_set_t cpu_set_io;
     uint8_t log_level;
 
+    // signal event
     struct event_base * evbase;
     struct event * evsignal[8];
 
+    // kafka
+    char topic_name[MR_SYMBOL_MAX];
+    char broker_list[1024];
+    char sasl_username[MR_SYMBOL_MAX];
+    char sasl_password[MR_SYMBOL_MAX];
+    rd_kafka_t * kafka_handle;
+    rd_kafka_topic_t * kafka_topic;
+
+    // dp trace
     char dp_trace_dir[PATH_MAX];
     unsigned int dp_trace_file_max_size_in_KB;
     unsigned int dp_trace_merge_timeout;
