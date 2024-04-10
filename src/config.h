@@ -20,6 +20,10 @@ struct config
     struct event_base * evbase;
     struct event * evsignal[8];
 
+    // device Information
+    char * sled_ip;
+    char device_group[MR_SYMBOL_MAX];
+
     // kafka
     char topic_name[MR_SYMBOL_MAX];
     char broker_list[1024];

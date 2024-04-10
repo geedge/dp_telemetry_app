@@ -2,6 +2,8 @@
 #include "common.h"
 #include "config.h"
 #include "job_ctx.h"
+#include "kafka.h"
+#include "mocking.h"
 
 #include <mpack.h>
 
@@ -12,6 +14,8 @@
 
 #define BURST_MAX 64
 
+extern struct mr_instance * mr_instance;
+
 int dp_trace_file_mutex_lock(job_bitmap_t job_id);
 int dp_trace_file_mutex_unlock(job_bitmap_t job_id);
 bool dp_trace_file_reach_max_size(job_bitmap_t job_id);
@@ -20,7 +24,6 @@ void dp_trace_file_rollbak(job_bitmap_t job_id);
 int dp_trace_classification(struct mr_instance * instance, marsio_buff_t * mbufs[], int nr_mbufs,
                             marsio_buff_t * class_mbufs[], int nr_class_mbufs, int nr_jobs_mbufs[DP_TRACE_JOB_NUM_MAX]);
 static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** data, size_t * size);
-static rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd);
 
 struct dp_trace_output
 {
@@ -65,11 +68,8 @@ void dp_trace_output_init()
         }
     }
 
-    // kafka init
-#if 0
     g_conf->kafka_handle = kafka_handle_create(g_conf->broker_list, g_conf->sasl_password, g_conf->sasl_username);
-    g_conf->kafka_topic = rd_kafka_topic_new(g_conf->kafka_handle, g_conf->topic_name, NULL);
-#endif
+    g_conf->kafka_topic = kafka_topic_new(g_conf->kafka_handle, g_conf->topic_name, NULL);
 }
 
 void * dp_trace_process_thread(void * arg)
@@ -129,11 +129,7 @@ void * dp_trace_process_thread(void * arg)
                 char * data;
                 size_t size;
                 dp_trace_decode_to_message_pack(rx_buff[j], &data, &size);
-                printf("%.*s\n", data, size);
-#if 0
-                rd_kafka_produce(g_conf->kafka_topic, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, (void *)data, size,
-                                 NULL, 0, NULL);
-#endif
+                kafka_produce(g_conf->kafka_topic, (void *)data, size);
             }
         }
     }
@@ -403,17 +399,30 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_build_map(&writer);
 
     mpack_write_cstr(&writer, "timestamp");
-    mpack_write_u64(&writer, microseconds);
+    mpack_write_i64(&writer, microseconds);
 
     char job_id_str[10];
     snprintf(job_id_str, sizeof(job_id_str), "%d", job_id);
     mpack_write_cstr(&writer, "job_id");
     mpack_write_cstr(&writer, job_id_str);
 
-    mpack_write_cstr(&writer, "src_ip");
+    mpack_write_cstr(&writer, "sled_ip");
+    if (g_conf->sled_ip != NULL)
+    {
+        mpack_write_cstr(&writer, g_conf->sled_ip);
+    }
+    else
+    {
+        mpack_write_cstr(&writer, "0.0.0.0");
+    }
+
+    mpack_write_cstr(&writer, "device_group");
+    mpack_write_cstr(&writer, g_conf->device_group);
+
+    mpack_write_cstr(&writer, "source_ip");
     mpack_write_cstr(&writer, pkt_info.src_addr_str);
 
-    mpack_write_cstr(&writer, "src_port");
+    mpack_write_cstr(&writer, "source_port");
     mpack_write_i32(&writer, pkt_info.src_port);
 
     mpack_write_cstr(&writer, "server_ip");
@@ -424,6 +433,9 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
 
     mpack_write_cstr(&writer, "packet");
     mpack_write_bin(&writer, marsio_buff_mtod(mr_mbuf), marsio_buff_datalen(mr_mbuf));
+
+    mpack_write_cstr(&writer, "packet_length");
+    mpack_write_i32(&writer, marsio_buff_datalen(mr_mbuf));
 
     mpack_write_cstr(&writer, "measurements");
     mpack_build_array(&writer);
@@ -465,75 +477,4 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     {
         syslog(LOG_ERR, "An error occurred during the data path decode to message pack!\n");
     }
-}
-
-static rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd)
-{
-    int ret;
-    char kafka_errstr[1024] = {0};
-    rd_kafka_t * handle = NULL;
-    rd_kafka_conf_t * rconf = NULL;
-
-    rconf = rd_kafka_conf_new();
-
-    ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", "1000000", kafka_errstr, sizeof(kafka_errstr));
-    if (ret != RD_KAFKA_CONF_OK)
-    {
-        syslog(LOG_ERR, "Error to set kafka \"queue.buffering.max.messages\", %s.", kafka_errstr);
-        goto error;
-    }
-    ret = rd_kafka_conf_set(rconf, "topic.metadata.refresh.interval.ms", "600000", kafka_errstr, sizeof(kafka_errstr));
-    if (ret != RD_KAFKA_CONF_OK)
-    {
-        syslog(LOG_ERR, "Error to set kafka \"topic.metadata.refresh.interval.ms\", %s.", kafka_errstr);
-        goto error;
-    }
-
-#if 0
-    assert(strlen(sasl_username) > 0);
-    assert(strlen(sasl_passwd) > 0);
-#endif
-
-    rd_kafka_conf_set(rconf, "security.protocol", "sasl_plaintext", kafka_errstr, sizeof(kafka_errstr));
-    rd_kafka_conf_set(rconf, "sasl.mechanisms", "PLAIN", kafka_errstr, sizeof(kafka_errstr));
-    ret = rd_kafka_conf_set(rconf, "sasl.username", sasl_username, kafka_errstr, sizeof(kafka_errstr));
-    if (ret != RD_KAFKA_CONF_OK)
-    {
-        syslog(LOG_ERR, "Error to set kafka \"sasl.username\", %s.", kafka_errstr);
-        goto error;
-    }
-    ret = rd_kafka_conf_set(rconf, "sasl.password", sasl_passwd, kafka_errstr, sizeof(kafka_errstr));
-    if (ret != RD_KAFKA_CONF_OK)
-    {
-        syslog(LOG_ERR, "Error to set kafka \"sasl.password\", %s.", kafka_errstr);
-        goto error;
-    }
-
-    // The conf object is freed by this function and must not be used or destroyed by the application sub-sequently.
-    handle = rd_kafka_new(RD_KAFKA_PRODUCER, rconf, kafka_errstr, sizeof(kafka_errstr));
-    rconf = NULL;
-    if (handle == NULL)
-    {
-        syslog(LOG_ERR, "Error to new kafka, %s.", kafka_errstr);
-        goto error;
-    }
-
-    if (rd_kafka_brokers_add(handle, brokerlist) == 0)
-    {
-        syslog(LOG_ERR, "Error to add kakfa bokers.");
-        goto error;
-    }
-
-    return handle;
-
-error:
-    if (rconf != NULL)
-    {
-        rd_kafka_conf_destroy(rconf);
-    }
-    if (handle != NULL)
-    {
-        rd_kafka_destroy(handle);
-    }
-    return NULL;
 }

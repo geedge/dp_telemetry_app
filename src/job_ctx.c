@@ -56,14 +56,6 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
         job_bitmap_t cur_job_id = 1 << i;
         unsigned int cur_job_uesd = cur_job_id & jobs_id_used;
 
-#if 0
-        // The job that was not in the system originally is not in the configuration now.
-        if (cur_job_uesd == 0 && (desc[i].enable == false || strlen(desc[i].bpf_expr) == 0))
-        {
-            continue;
-        }
-#endif
-
         // The job that was not originally in the system is now included in the configuration.
         if (cur_job_uesd == 0 && desc[i].enable && strlen(desc[i].bpf_expr) != 0)
         {
@@ -71,38 +63,6 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
             dp_trace_job_id_uesd[i] = 1;
             continue;
         }
-
-#if 0
-        // Modification functionality is no longer available
-        if (cur_job_uesd == 1 && desc[i].enable && strlen(desc[i].bpf_expr) != 0)
-        {
-            struct dp_trace_job_desc * job_ctx_i_desc = &desc[i];
-            if (strcmp(job_ctx_i_desc->bpf_expr, desc[i].bpf_expr) != 0)
-            {
-                syslog(LOG_INFO, " [mod rule %u] bpf_expr: %s;", i, desc[i].bpf_expr);
-                marsio_dp_trace_job_del(mr_instance, cur_job_id);
-                marsio_dp_trace_job_add(mr_instance, job_ctx_i_desc);
-            }
-            else
-            {
-                if (job_ctx_i_desc->pkt_cnt_max != desc[i].pkt_cnt_max)
-                {
-                    job_ctx_i_desc->pkt_cnt_max = desc[i].pkt_cnt_max;
-                }
-
-                if (job_ctx_i_desc->sampling != desc[i].sampling)
-                {
-                    job_ctx_i_desc->sampling = desc[i].sampling;
-                }
-
-                if (job_ctx_i_desc->snaplen != desc[i].snaplen)
-                {
-                    job_ctx_i_desc->snaplen = desc[i].snaplen;
-                }
-            }
-            continue;
-        }
-#endif
 
         // The job that originally existed in the system is not in the configuration now.
         if (cur_job_uesd == 1 && (desc[i].enable == false || strlen(desc[i].bpf_expr) == 0))
