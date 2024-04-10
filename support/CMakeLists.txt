@@ -2,36 +2,22 @@
 
 include(ExternalProject)
 
-#### GoogleTest
-ExternalProject_Add(googletest PREFIX googletest
-    URL ${CMAKE_CURRENT_SOURCE_DIR}/googletest-release-1.8.0.tar.gz
-    URL_MD5 16877098823401d1bf2ed7891d7dce36
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+#### cmocka
+ExternalProject_Add(cmocka PREFIX cmocka
+    URL ${CMAKE_CURRENT_SOURCE_DIR}/cmocka-1.1.7.tar.xz
+    URL_MD5 dc23f4870eb7dfa6da065f3056e815b0
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
-ExternalProject_Get_Property(googletest INSTALL_DIR)
+ExternalProject_Get_Property(cmocka INSTALL_DIR)
 file(MAKE_DIRECTORY ${INSTALL_DIR}/include)
 
-add_library(gtest STATIC IMPORTED GLOBAL)
-add_dependencies(gtest googletest)
-set_property(TARGET gtest PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/libgtest.a)
-set_property(TARGET gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)
-set_property(TARGET gtest PROPERTY INTERFACE_LINK_LIBRARIES pthread)
-
-add_library(gtest_main STATIC IMPORTED GLOBAL)
-add_dependencies(gtest_main googletest)
-set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/libgtest_main.a)
-set_property(TARGET gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)
-set_property(TARGET gtest_main PROPERTY INTERFACE_LINK_LIBRARIES pthread gtest)
-
-add_library(gmock STATIC IMPORTED GLOBAL)
-add_dependencies(gmock googletest)
-set_property(TARGET gmock PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/libgmock.a)
-set_property(TARGET gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)
-
-add_library(gmock_main STATIC IMPORTED GLOBAL)
-add_dependencies(gmock_main googletest)
-set_property(TARGET gmock_main PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/libgmock_main.a)
-set_property(TARGET gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)
+add_library(libcmocka STATIC IMPORTED GLOBAL)
+add_dependencies(libcmocka cmocka)
+set_target_properties(libcmocka PROPERTIES
+    IMPORTED_LOCATION ${INSTALL_DIR}/lib64/libcmocka.a
+    INTERFACE_LINK_DIRECTORIES ${INSTALL_DIR}/lib64
+    INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include
+)
 
 #### libevent
 ExternalProject_Add(libevent PREFIX libevent

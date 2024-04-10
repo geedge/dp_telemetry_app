@@ -52,6 +52,15 @@ void config_load()
     }
     g_conf->log_level = loglevel;
 
+    MESA_load_profile_string_def(g_conf->device_group, "global", "device_group", g_conf->device_group,
+                                 sizeof(g_conf->device_group), "unknow");
+
+    g_conf->sled_ip = getenv("SLED_IP");
+    if (g_conf->sled_ip == NULL)
+    {
+        syslog(LOG_WARNING, "SLED_IP environment variable does not exist.");
+    }
+
     MESA_load_profile_string_def(g_conf->config_path, "kafka", "borker_list", g_conf->broker_list,
                                  sizeof(g_conf->broker_list), "");
     MESA_load_profile_string_def(g_conf->config_path, "kafka", "topic_name", g_conf->topic_name,

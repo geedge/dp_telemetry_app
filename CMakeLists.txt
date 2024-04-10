@@ -15,5 +15,8 @@ endif()
 
 add_definitions(-D_GNU_SOURCE -D__STDC_LIMIT_MACROS)
 
+option(ENABLE_DEVELOP_MOCKING "enable develop mocking" FALSE)
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/support)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_SOURCE_DIR}/test)
