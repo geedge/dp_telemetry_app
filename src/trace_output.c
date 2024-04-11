@@ -24,6 +24,7 @@ void dp_trace_file_rollbak(job_bitmap_t job_id);
 int dp_trace_classification(struct mr_instance * instance, marsio_buff_t * mbufs[], int nr_mbufs,
                             marsio_buff_t * class_mbufs[], int nr_class_mbufs, int nr_jobs_mbufs[DP_TRACE_JOB_NUM_MAX]);
 static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** data, size_t * size);
+static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, unsigned int size);
 
 struct dp_trace_output
 {
@@ -180,6 +181,11 @@ int dp_trace_classification(struct mr_instance * instance, marsio_buff_t * mbufs
 
 void cli_job_mbufs_write_process(marsio_buff_t * mbufs[], int nr_mbufs, job_bitmap_t job_id)
 {
+    int ret = 0;
+    char * comment = NULL;
+    unsigned int copy_cnt = 0;
+    marsio_buff_t * pcapng_pkt[nr_mbufs];
+
     if (is_job_id_used(job_id) == 0)
     {
         // After the job stops, the remaining data packets in the ring are discarded.
@@ -212,7 +218,26 @@ void cli_job_mbufs_write_process(marsio_buff_t * mbufs[], int nr_mbufs, job_bitm
         dp_trace_output[index].pcapng = pcapng;
     }
 
-    marsio_dp_trace_pcapng_write(mr_instance, dp_trace_output[index].pcapng, mbufs, nr_mbufs);
+    // todo: optimization
+    unsigned int comment_max_size = 8192;
+    comment = malloc(comment_max_size);
+    CHECK_OR_EXIT(comment, "malloc fail, insufficient memory");
+
+    for (unsigned int i = 0; i < nr_mbufs; i++)
+    {
+        ret = dp_trace_record_decode_to_str(mbufs[i], comment, comment_max_size);
+        if (ret < 0)
+        {
+            continue;
+        }
+
+        struct dp_trace_buffer_telemetry trace_buff_info;
+        marsio_dp_trace_buffer_info_get(mbufs[i], &trace_buff_info);
+        marsio_buff_t * pkt = marsio_dp_trace_pcapng_copy(mr_instance, mbufs[i], trace_buff_info.snaplen, comment);
+        pcapng_pkt[copy_cnt++] = pkt;
+    }
+
+    marsio_dp_trace_pcapng_write_and_free(mr_instance, dp_trace_output[index].pcapng, pcapng_pkt, copy_cnt);
 
     if (dp_trace_file_reach_max_size(job_id))
     {
@@ -224,6 +249,7 @@ unlock:
 
 end:
     marsio_dp_trace_free(mr_instance, mbufs, nr_mbufs);
+    free(comment);
     return;
 }
 
@@ -477,4 +503,58 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     {
         syslog(LOG_ERR, "An error occurred during the data path decode to message pack!\n");
     }
+}
+
+static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, unsigned int size)
+{
+    struct dp_trace_buffer_telemetry trace_buff_info;
+    marsio_dp_trace_buffer_info_get(mr_mbuf, &trace_buff_info);
+    unsigned int position = 0;
+
+#ifndef NDEBUG
+    unsigned int comment_cnt = 0;
+#endif
+
+    while (position < trace_buff_info.buffer_used)
+    {
+        char * cur = trace_buff_info.buffer + position;
+
+        const struct dp_trace_record_header * record_header = (struct dp_trace_record_header *)(cur);
+        const char * str = cur + sizeof(struct dp_trace_record_header);
+        const unsigned int str_len = record_header->recode_len;
+
+        int n = snprintf(data, size, "[%s:%s:] %ld.%ld ", record_header->appsym, record_header->module,
+                         record_header->ts.tv_sec, record_header->ts.tv_nsec);
+        if (unlikely(n < 0 || n >= size))
+            return -1;
+        size -= n;
+        data += n;
+
+        if (unlikely(size - 2 < str_len))
+            return -1;
+        memcpy(data, str, str_len);
+        size -= str_len;
+        data += str_len;
+
+        *data = '\n';
+        size--;
+        data++;
+
+        position += sizeof(struct dp_trace_record_header) + str_len;
+#ifndef NDEBUG
+        comment_cnt++;
+#endif
+    }
+
+    if (size < 1)
+        return -1;
+
+#ifndef NDEBUG
+    uint16_t avali = trace_buff_info.buffer_len - trace_buff_info.buffer_used;
+    snprintf(data, size, "used: %u, avali: %u, comment: %u", trace_buff_info.buffer_used, avali, comment_cnt);
+#else
+    *data = '\0';
+#endif
+
+    return 0;
 }
