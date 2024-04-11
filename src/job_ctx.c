@@ -6,8 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern struct mr_instance * mr_instance;
-uint8_t dp_trace_job_id_uesd[DP_TRACE_JOB_NUM_MAX];
+struct dp_trace_job_occupy
+{
+    uint8_t uesd;
+    uint8_t role;
+};
+
+static struct dp_trace_job_occupy dp_trace_job_occupy[DP_TRACE_JOB_NUM_MAX] = {};
 
 #if 0
 static void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line,
@@ -41,7 +46,7 @@ int maat_register()
 }
 #endif
 
-void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
+void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8_t role)
 {
     job_bitmap_t jobs_id_used;
     int ret = marsio_dp_trace_job_id_uesd_get(mr_instance, &jobs_id_used);
@@ -53,14 +58,24 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
 
     for (unsigned int i = 0; i < nr_desc; i++)
     {
-        job_bitmap_t cur_job_id = 1 << i;
+        uint8_t rule_index = desc[i].rule_index;
+        job_bitmap_t cur_job_id = index_to_job_id(rule_index);
         unsigned int cur_job_uesd = cur_job_id & jobs_id_used;
 
         // The job that was not originally in the system is now included in the configuration.
         if (cur_job_uesd == 0 && desc[i].enable && strlen(desc[i].bpf_expr) != 0)
         {
             marsio_dp_trace_job_add(mr_instance, &desc[i]);
-            dp_trace_job_id_uesd[i] = 1;
+            dp_trace_job_occupy[rule_index].uesd = 1;
+            dp_trace_job_occupy[rule_index].role = role;
+
+#if 1
+            // just for test
+            if (rule_index == 10)
+            {
+                dp_trace_job_occupy[rule_index].role = DP_TELEMETRY_ROLE;
+            }
+#endif
             continue;
         }
 
@@ -68,8 +83,14 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
         if (cur_job_uesd == 1 && (desc[i].enable == false || strlen(desc[i].bpf_expr) == 0))
         {
             marsio_dp_trace_job_del(mr_instance, cur_job_id);
-            dp_trace_job_id_uesd[i] = 0;
-            dp_trace_pcapng_merger(cur_job_id);
+            uint8_t tmp_role = dp_trace_job_occupy[rule_index].role;
+            dp_trace_job_occupy[rule_index].uesd = 0;
+            dp_trace_job_occupy[rule_index].role = DP_TRACE_NO_ROLE;
+
+            if (dp_trace_job_occupy[rule_index].role == tmp_role)
+            {
+                dp_trace_pcapng_merger(cur_job_id);
+            }
             continue;
         }
     }
@@ -78,7 +99,13 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
 int is_job_id_used(job_bitmap_t job_id)
 {
     unsigned int index = job_id_to_index(job_id);
-    return dp_trace_job_id_uesd[index];
+    return dp_trace_job_occupy[index].uesd;
+}
+
+uint8_t job_id_role_get(job_bitmap_t job_id)
+{
+    unsigned int index = job_id_to_index(job_id);
+    return dp_trace_job_occupy[index].role;
 }
 
 int job_id_to_index(job_bitmap_t job_id)

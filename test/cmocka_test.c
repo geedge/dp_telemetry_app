@@ -14,24 +14,19 @@ struct mr_instance * mr_instance = NULL;
 int setup(void ** state)
 {
     mr_instance = marsio_create();
+    config_create();
     return 0;
 }
 
 int teardown(void ** state)
 {
-    if (g_conf != NULL)
-    {
-        free(g_conf);
-        g_conf == NULL;
-        printf("free g_conf\n");
-    }
+    global_config_destroy();
     return 0;
 }
 
 void config_create_test(void ** state)
 {
-    config_create();
-    assert_non_null(g_conf);
+    assert_non_null(global_config_get());
 }
 
 int main(int argc, char * argv[])

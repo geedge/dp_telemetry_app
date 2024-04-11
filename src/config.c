@@ -5,16 +5,14 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/signalfd.h>
 #include <unistd.h>
 
 #define MAX_LCORE 128
 
 extern struct mr_instance * mr_instance;
-struct config * g_conf = NULL;
+static struct config * g_conf = NULL;
 
 struct config * config_create()
 {
@@ -23,6 +21,17 @@ struct config * config_create()
 
     g_conf = conf;
     return conf;
+}
+
+const struct config * global_config_get()
+{
+    CHECK_OR_EXIT(g_conf, "global config is null.");
+    return g_conf;
+}
+
+void global_config_destroy()
+{
+    free(g_conf);
 }
 
 void config_load()
@@ -51,6 +60,14 @@ void config_load()
         exit(EXIT_FAILURE);
     }
     g_conf->log_level = loglevel;
+
+    char dp_trace_dir[PATH_MAX] = "/tmp";
+    MESA_load_profile_string_nodef(g_conf->config_path, "global", "dp_trace_dir", dp_trace_dir, sizeof(dp_trace_dir));
+    if (dp_trace_dir[strlen(dp_trace_dir) - 1] == '/')
+    {
+        dp_trace_dir[strlen(dp_trace_dir) - 1] = '\0';
+    }
+    snprintf(g_conf->dp_trace_dir, sizeof(g_conf->dp_trace_dir), "%s", dp_trace_dir);
 
     MESA_load_profile_string_def(g_conf->device_group, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "unknow");
@@ -83,15 +100,6 @@ void dynamic_config_load()
     syslog(LOG_INFO, "Loading data path trace configuration file...");
 
     int ret = 0;
-
-    char dp_trace_dir[PATH_MAX] = "/tmp";
-    MESA_load_profile_string_nodef(g_conf->dy_config_path, "dp_trace_rule", "dp_trace_dir", dp_trace_dir,
-                                   sizeof(dp_trace_dir));
-    if (dp_trace_dir[strlen(dp_trace_dir) - 1] == '/')
-    {
-        dp_trace_dir[strlen(dp_trace_dir) - 1] = '\0';
-    }
-    snprintf(g_conf->dp_trace_dir, sizeof(g_conf->dp_trace_dir), "%s", dp_trace_dir);
 
     unsigned int dp_trace_file_max_size_in_KB = 256 * 1024;
     MESA_load_profile_uint_nodef(g_conf->dy_config_path, "dp_trace_rule", "dp_trace_file_max_size_in_KB",
@@ -143,50 +151,8 @@ void dynamic_config_load()
     syslog(LOG_INFO, "Loading data path trace configuration file is completed.");
 }
 
-void dynamic_config_apply()
+void dynamic_config_load_and_apply()
 {
-    job_rule_apply(g_conf->desc, TELEMETRY_DIM(g_conf->desc));
-}
-
-static void signal_handler(evutil_socket_t fd, short what, void * arg)
-{
-
-    switch (fd)
-    {
-    case SIGHUP:
-        dynamic_config_load();
-        dynamic_config_apply();
-    default:
-        syslog(LOG_WARNING, "Received unexpected signal: %d", fd);
-    }
-}
-
-static void * dynamic_config_reload_thread_dispatch(void * arg)
-{
-    struct event_base * base = (struct event_base *)arg;
-    event_base_dispatch(base);
-    return NULL;
-}
-
-void dynamic_config_reload_init()
-{
-    static int signals[] = {SIGHUP};
-
-    g_conf->evbase = event_base_new();
-
-    CHECK_OR_EXIT(g_conf->evbase, "event_base_new failed");
-
-    for (unsigned int i = 0; i < TELEMETRY_DIM(signals); i++)
-    {
-        g_conf->evsignal[i] = evsignal_new(g_conf->evbase, signals[i], signal_handler, NULL);
-        CHECK_OR_EXIT(g_conf->evsignal[i], "create signal event failed. signal is:%d", signals[i]);
-        evsignal_add(g_conf->evsignal[i], NULL);
-    }
-
-    pthread_t tid;
-    if (pthread_create(&tid, NULL, dynamic_config_reload_thread_dispatch, g_conf->evbase) != 0)
-    {
-        syslog(LOG_ERR, "failed to create thread for event_base dispatch");
-        exit(EXIT_FAILURE);
-    }
+    dynamic_config_load();
+    job_rule_apply(g_conf->desc, TELEMETRY_DIM(g_conf->desc), DP_TRACE_ROLE);
 }

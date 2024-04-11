@@ -16,10 +16,6 @@ struct config
     cpu_set_t cpu_set_io;
     uint8_t log_level;
 
-    // signal event
-    struct event_base * evbase;
-    struct event * evsignal[8];
-
     // device Information
     char * sled_ip;
     char device_group[MR_SYMBOL_MAX];
@@ -29,8 +25,6 @@ struct config
     char broker_list[1024];
     char sasl_username[MR_SYMBOL_MAX];
     char sasl_password[MR_SYMBOL_MAX];
-    rd_kafka_t * kafka_handle;
-    rd_kafka_topic_t * kafka_topic;
 
     // dp trace
     char dp_trace_dir[PATH_MAX];
@@ -40,7 +34,7 @@ struct config
 };
 
 struct config * config_create();
+const struct config * global_config_get();
+void global_config_destroy();
 void config_load();
-void dynamic_config_load();
-void dynamic_config_apply();
-void dynamic_config_reload_init();
+void dynamic_config_load_and_apply();

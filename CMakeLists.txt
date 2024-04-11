@@ -14,6 +14,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_definitions(-D_GNU_SOURCE -D__STDC_LIMIT_MACROS)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 
 option(ENABLE_DEVELOP_MOCKING "enable develop mocking" FALSE)
 
