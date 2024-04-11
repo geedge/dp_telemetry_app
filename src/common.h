@@ -32,8 +32,11 @@
         }                                                                                                              \
     } while (0)
 
+#define DP_TRACE_NO_ROLE 0
+#define DP_TRACE_ROLE 1
+#define DP_TELEMETRY_ROLE 2
+
 extern struct mr_instance * mr_instance;
-extern struct config * g_conf;
 
 static bool is_directory_exists(const char * path)
 {

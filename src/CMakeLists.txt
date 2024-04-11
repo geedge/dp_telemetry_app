@@ -16,3 +16,10 @@ target_link_libraries(${PROJECT_NAME} libmarsio maatframe MESA_prof_load libeven
 if(ENABLE_DEVELOP_MOCKING)
     target_link_options(${PROJECT_NAME} PRIVATE -Wl,--wrap=kafka_handle_create,--wrap=kafka_topic_new,--wrap=kafka_produce)
 endif()
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/conf
+            ${CMAKE_BINARY_DIR}/conf
+    COMMENT "copy config file to build directory"
+)
