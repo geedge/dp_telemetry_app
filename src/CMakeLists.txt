@@ -23,3 +23,8 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             ${CMAKE_BINARY_DIR}/conf
     COMMENT "copy config file to build directory"
 )
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT Program)
+
+file(GLOB CONFIG_FILES ${CMAKE_SOURCE_DIR}/conf/*)
+install(FILES ${CONFIG_FILES} DESTINATION ${INSTALL_ETC_DIR} COMPONENT Profile)
