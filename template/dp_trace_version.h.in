@@ -1,0 +1,3 @@
+#pragma once
+
+#define DP_TRACE_VERSION "@DP_TRACE_VERSION@"

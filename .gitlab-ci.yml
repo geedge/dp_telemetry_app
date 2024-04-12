@@ -5,6 +5,7 @@ variables:
 
 stages:
     - build
+    - deploy
 
 .build_before_script:
     before_script:
@@ -22,7 +23,6 @@ stages:
         - cd $ROOT_DIR
 
 .build:
-    stage: build
     extends: .build_before_script
     image: ${BUILD_IMAGE_CENTOS8}
     tags:
@@ -32,9 +32,28 @@ stages:
         - cd build
         - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         - make VERBOSE=1
+        - make package
 
 build:
+    stage: build
     extends: .build
     parallel:
         matrix:
             - BUILD_TYPE: ["RelWithDebInfo"]
+    rules:
+        - if: $CI_COMMIT_TAG
+          when: never
+        - if: $CI_COMMIT_BRANCH
+
+deploy:
+    stage: deploy
+    extends: .build
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
+    artifacts:
+        name: "dp_trace_telemetry-$BUILD_TYPE-$CI_COMMIT_REF_NAME"
+        paths:
+            - build/*.rpm
+    rules:
+        - if: $CI_COMMIT_TAG

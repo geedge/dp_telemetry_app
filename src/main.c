@@ -69,7 +69,8 @@ void usage()
                     "\n"
                     "   -c config file path\n"
                     "   -d dynamic config file path\n"
-                    "   -h\n"
+                    "   -v show current version\n"
+                    "   -h \n"
                     "\n");
     exit(0);
 }
@@ -81,7 +82,7 @@ int main(int argc, char * argv[])
     char config_path[PATH_MAX];
     char dy_config_path[PATH_MAX];
     int opt = 0;
-    while ((opt = getopt(argc, argv, "c:d:h")) != -1)
+    while ((opt = getopt(argc, argv, "c:d:hv")) != -1)
     {
         char * endptr = NULL;
         switch (opt)
@@ -97,6 +98,10 @@ int main(int argc, char * argv[])
         case 'd': {
             snprintf(dy_config_path, sizeof(dy_config_path), "%s", optarg);
             break;
+        }
+        case 'v': {
+            printf("dp_trace_telemetry current version: %s\n", DP_TRACE_VERSION);
+            exit(0);
         }
         default:
             usage();
