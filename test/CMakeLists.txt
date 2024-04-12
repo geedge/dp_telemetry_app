@@ -10,4 +10,4 @@ set(DP_TRACE_TELEMETRY_SOURCES
     ${CMAKE_SOURCE_DIR}/support/mpack/mpack.c)
 
 add_executable(cmocka_test cmocka_test.c  ${DP_TRACE_TELEMETRY_SOURCES})
-target_link_libraries(cmocka_test libmarsio maatframe MESA_prof_load libevent-static rdkafka libcmocka uuid pthread)
+target_link_libraries(cmocka_test libmarsio maatframe MESA_prof_load libevent-static rdkafka libcmocka libzlog uuid pthread)

@@ -83,3 +83,21 @@ set_property(TARGET MESA_prof_load PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MESA
 add_library(rdkafka SHARED IMPORTED GLOBAL)
 set_property(TARGET rdkafka PROPERTY IMPORTED_LOCATION ${MESA_FRAMEWORK_LIB_DIR}/librdkafka.so)
 set_property(TARGET rdkafka PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MESA_FRAMEWORK_INCLUDE_DIR}/MESA)
+
+##### zlog
+ExternalProject_Add(zlog PREFIX zlog
+    URL ${CMAKE_CURRENT_SOURCE_DIR}/zlog-1.2.17.tar.gz
+    URL_MD5 d3ff9ba6cbafef89f98eb6a788ca2e78
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+ExternalProject_Get_Property(zlog INSTALL_DIR)
+file(MAKE_DIRECTORY ${INSTALL_DIR}/include)
+
+add_library(libzlog STATIC IMPORTED GLOBAL)
+add_dependencies(libzlog zlog)
+set_target_properties(libzlog PROPERTIES
+    IMPORTED_LOCATION ${INSTALL_DIR}/lib/libzlog.a
+    INTERFACE_LINK_DIRECTORIES ${INSTALL_DIR}/lib
+    INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include
+    INTERFACE_LINK_LIBRARIES pthread
+)

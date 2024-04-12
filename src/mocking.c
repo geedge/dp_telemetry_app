@@ -73,7 +73,7 @@ int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
     {
         if (i >= 128)
         {
-            printf("too many measurements...");
+            dzlog_debug("too many measurements...");
             continue;
         }
         mpack_node_t measurement = mpack_node_array_at(measurements_val, i);
@@ -86,22 +86,22 @@ int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
     }
 
     // print
-    printf("microseconds %ld\n", packet.microseconds);
-    printf("job_id %s\n", packet.job_id_str);
-    printf("sled_ip %s\n", packet.sled_ip);
-    printf("device_group %s\n", packet.device_group);
-    printf("source_ip %s\n", packet.source_ip);
-    printf("source_port %d\n", packet.source_port);
-    printf("server_ip %s\n", packet.server_ip);
-    printf("server_port %d\n", packet.server_port);
-    printf("packet_length %d\n", packet.packet_length);
+    dzlog_debug("microseconds %ld", packet.microseconds);
+    dzlog_debug("job_id %s", packet.job_id_str);
+    dzlog_debug("sled_ip %s", packet.sled_ip);
+    dzlog_debug("device_group %s", packet.device_group);
+    dzlog_debug("source_ip %s", packet.source_ip);
+    dzlog_debug("source_port %d", packet.source_port);
+    dzlog_debug("server_ip %s", packet.server_ip);
+    dzlog_debug("server_port %d", packet.server_port);
+    dzlog_debug("packet_length %d", packet.packet_length);
     for (unsigned int i = 0; i < packet.measurements_num; i++)
     {
-        printf("record %u:\n", i);
-        printf("tv_sec %d\n", packet.record[i].tv_sec);
-        printf("tv_nsec %d\n", packet.record[i].tv_nsec);
-        printf("app %.*s\n", packet.record[i].app_len, packet.record[i].app);
-        printf("comments %.*s\n", packet.record[i].comments_len, packet.record[i].comments);
+        dzlog_debug("record %u:", i);
+        dzlog_debug("tv_sec %d", packet.record[i].tv_sec);
+        dzlog_debug("tv_nsec %d", packet.record[i].tv_nsec);
+        dzlog_debug("app %.*s", packet.record[i].app_len, packet.record[i].app);
+        dzlog_debug("comments %.*s", packet.record[i].comments_len, packet.record[i].comments);
     }
 
     free(payload);

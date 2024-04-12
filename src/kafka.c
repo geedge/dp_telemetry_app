@@ -13,13 +13,13 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
     ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", "1000000", kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
-        syslog(LOG_ERR, "Error to set kafka \"queue.buffering.max.messages\", %s.", kafka_errstr);
+        dzlog_error("Error to set kafka \"queue.buffering.max.messages\", %s.", kafka_errstr);
         goto error;
     }
     ret = rd_kafka_conf_set(rconf, "topic.metadata.refresh.interval.ms", "600000", kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
-        syslog(LOG_ERR, "Error to set kafka \"topic.metadata.refresh.interval.ms\", %s.", kafka_errstr);
+        dzlog_error("Error to set kafka \"topic.metadata.refresh.interval.ms\", %s.", kafka_errstr);
         goto error;
     }
 
@@ -31,13 +31,13 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
     ret = rd_kafka_conf_set(rconf, "sasl.username", sasl_username, kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
-        syslog(LOG_ERR, "Error to set kafka \"sasl.username\", %s.", kafka_errstr);
+        dzlog_error("Error to set kafka \"sasl.username\", %s.", kafka_errstr);
         goto error;
     }
     ret = rd_kafka_conf_set(rconf, "sasl.password", sasl_passwd, kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
-        syslog(LOG_ERR, "Error to set kafka \"sasl.password\", %s.", kafka_errstr);
+        dzlog_error("Error to set kafka \"sasl.password\", %s.", kafka_errstr);
         goto error;
     }
 
@@ -46,13 +46,13 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
     rconf = NULL;
     if (handle == NULL)
     {
-        syslog(LOG_ERR, "Error to new kafka, %s.", kafka_errstr);
+        dzlog_error("Error to new kafka, %s.", kafka_errstr);
         goto error;
     }
 
     if (rd_kafka_brokers_add(handle, brokerlist) == 0)
     {
-        syslog(LOG_ERR, "Error to add kakfa bokers.");
+        dzlog_error("Error to add kakfa bokers.");
         goto error;
     }
 

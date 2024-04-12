@@ -23,7 +23,7 @@ static void signal_handler(evutil_socket_t fd, short what, void * arg)
     case SIGHUP:
         dynamic_config_load_and_apply();
     default:
-        syslog(LOG_WARNING, "Received unexpected signal: %d", fd);
+        dzlog_warn("Received unexpected signal: %d", fd);
     }
 }
 
@@ -54,7 +54,7 @@ void signal_event_init()
     pthread_t tid;
     if (pthread_create(&tid, NULL, signal_event_thread_dispatch, evbase) != 0)
     {
-        syslog(LOG_ERR, "failed to create thread for event_base dispatch");
+        dzlog_error("failed to create thread for event_base dispatch");
         exit(EXIT_FAILURE);
     }
 }
@@ -76,11 +76,10 @@ void usage()
 
 int main(int argc, char * argv[])
 {
-    openlog("dp_trace_telemetry", LOG_CONS, 0);
-    syslog(LOG_DEBUG, "dp_trace_telemetry start.");
+    int ret = 0;
 
-    // Specify configuration file location
-    struct config * conf = config_create();
+    char config_path[PATH_MAX];
+    char dy_config_path[PATH_MAX];
     int opt = 0;
     while ((opt = getopt(argc, argv, "c:d:h")) != -1)
     {
@@ -92,11 +91,11 @@ int main(int argc, char * argv[])
             break;
         }
         case 'c': {
-            snprintf(conf->config_path, sizeof(conf->config_path), "%s", optarg);
+            snprintf(config_path, sizeof(config_path), "%s", optarg);
             break;
         }
         case 'd': {
-            snprintf(conf->dy_config_path, sizeof(conf->dy_config_path), "%s", optarg);
+            snprintf(dy_config_path, sizeof(dy_config_path), "%s", optarg);
             break;
         }
         default:
@@ -105,15 +104,31 @@ int main(int argc, char * argv[])
         }
     }
 
+    config_create(config_path, dy_config_path);
+
     // Load configuration file
     config_load();
-    dp_trace_output_init();
 
-    setlogmask(LOG_UPTO(conf->log_level));
+    const struct config * conf = global_config_get();
+
+    ret = dzlog_init(conf->zlog_config_path, "default_zlog_category");
+    if (ret != 0)
+    {
+        char * zlog_profile_error = getenv("ZLOG_PROFILE_ERROR");
+        printf("fail in dzlog_int.\n");
+        if (zlog_profile_error != NULL)
+        {
+            printf("The zlog error log is recorded in:%s\n", zlog_profile_error);
+        }
+        return 0;
+    }
+
+    dp_trace_output_init();
 
     mr_instance = marsio_create();
 
-    marsio_option_set(mr_instance, MARSIO_OPT_THREAD_MASK_IN_CPUSET, &conf->cpu_set_io, sizeof(conf->cpu_set_io));
+    cpu_set_t cpu_set_io = conf->cpu_set_io;
+    marsio_option_set(mr_instance, MARSIO_OPT_THREAD_MASK_IN_CPUSET, &cpu_set_io, sizeof(cpu_set_io));
 
     marsio_init(mr_instance, appsym);
 
@@ -125,12 +140,12 @@ int main(int argc, char * argv[])
 
     if (nr_thread != 4)
     {
-        syslog(LOG_EMERG, "Currently, four threads must be created to read the data. This restriction will be removed "
-                          "later");
+        dzlog_error("Currently, four threads must be created to read the data. This restriction will be removed "
+                    "later");
         return 0;
     }
 
-    syslog(LOG_INFO, "Thread Count = %d\n", nr_thread);
+    dzlog_info("Thread Count = %d", nr_thread);
     pthread_t tmp_pid[nr_thread];
 
     for (int i = 0; i < nr_thread; i++)

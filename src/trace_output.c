@@ -49,7 +49,7 @@ void dp_trace_output_init()
     int ret = mkdir(dp_trace_dir, 0755);
     if (ret != 0 && errno != EEXIST)
     {
-        syslog(LOG_ERR, "Failed to create directory:%s.%s", dp_trace_dir, strerror(errno));
+        dzlog_error("Failed to create directory:%s.%s", dp_trace_dir, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -69,7 +69,7 @@ void dp_trace_output_init()
         ret = pthread_mutex_init(&dp_trace_output[i].file_mutex, &attr);
         if (ret != 0)
         {
-            syslog(LOG_ERR, "pthread_mutex_init failed(ret=%d)", ret);
+            dzlog_error("pthread_mutex_init failed(ret=%d)", ret);
             exit(EXIT_FAILURE);
         }
     }
@@ -133,8 +133,7 @@ void * dp_trace_process_thread(void * arg)
             }
             else
             {
-                syslog(LOG_INFO,
-                       "The job has been deleted. The trace content corresponding to the job has been discarded.");
+                dzlog_info("The job has been deleted. The trace content corresponding to the job has been discarded.");
                 marsio_dp_trace_free(mr_instance, class_mbufs[i], nr_mbufs);
             }
         }
@@ -272,7 +271,7 @@ bool dp_trace_file_reach_max_size(job_bitmap_t job_id)
     struct stat file_stat;
     if (unlikely(stat(dp_trace_output[index].file_path, &file_stat) == -1))
     {
-        syslog(LOG_ERR, "Failed to obtain data path trace file status.");
+        dzlog_error("Failed to obtain data path trace file status.");
         ret = true;
         goto end;
     }
@@ -302,7 +301,7 @@ void dp_trace_file_rollbak(job_bitmap_t job_id)
     const char * file_bak_path = dp_trace_output[index].file_bak_path;
     if (rename(file_path, file_bak_path) < 0)
     {
-        syslog(LOG_ERR, "rename %s to %s failed. error info: %s", file_path, file_bak_path, strerror(errno));
+        dzlog_error("rename %s to %s failed. error info: %s", file_path, file_bak_path, strerror(errno));
     }
 
     pcapng_file_t * pcapng = marsio_dp_trace_pcapng_fopen(mr_instance, dp_trace_output[index].file_path);
@@ -337,39 +336,39 @@ void dp_trace_pcapng_merger(job_bitmap_t job_id)
 
     if (rename(file_path, file_middle_path) < 0)
     {
-        syslog(LOG_ERR, "rename %s to %s failed. error info: %s", file_path, file_middle_path, strerror(errno));
+        dzlog_error("rename %s to %s failed. error info: %s", file_path, file_middle_path, strerror(errno));
         goto end;
     }
 
     char command[2 * PATH_MAX];
     snprintf(command, sizeof(command), "timeout -v %us mergecap -w %s %s %s 2>&1",
              global_config_get()->dp_trace_merge_timeout, file_path, file_middle_path, file_bak_path);
-    syslog(LOG_INFO, "merge trace file: %s", command);
+    dzlog_info("merge trace file: %s", command);
 
     FILE * fp;
     char buffer[1024];
     fp = popen(command, "r");
     if (fp == NULL)
     {
-        syslog(LOG_ERR, "open pipe failed: %s", strerror(errno));
+        dzlog_error("open pipe failed: %s", strerror(errno));
         goto end;
     }
 
     while (fgets(buffer, sizeof(buffer), fp) != NULL)
     {
-        syslog(LOG_ERR, "merge trace file output: %s", buffer);
+        dzlog_error("merge trace file output: %s", buffer);
     }
 
     pclose(fp);
 
     if (remove(file_middle_path) < 0)
     {
-        syslog(LOG_ERR, "remove %s failed. error info: %s", file_middle_path, strerror(errno));
+        dzlog_error("remove %s failed. error info: %s", file_middle_path, strerror(errno));
     }
 
     if (remove(file_bak_path) < 0)
     {
-        syslog(LOG_ERR, "remove %s failed. error info: %s", file_bak_path, strerror(errno));
+        dzlog_error("remove %s failed. error info: %s", file_bak_path, strerror(errno));
     }
 
 end:
@@ -386,13 +385,13 @@ int dp_trace_file_mutex_lock(job_bitmap_t job_id)
         ret = pthread_mutex_unlock(&dp_trace_output[index].file_mutex);
         if (ret != 0)
         {
-            syslog(LOG_ERR, "EOWNERDEAD -> job ctx unlock failed");
+            dzlog_error("EOWNERDEAD -> job ctx unlock failed");
             return -1;
         }
     }
     else if (ret != 0)
     {
-        syslog(LOG_ERR, "job ctx lock failed");
+        dzlog_error("job ctx lock failed");
         return -1;
     }
     return 0;
@@ -501,7 +500,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     /* finish writing */
     if (mpack_writer_destroy(&writer) != mpack_ok)
     {
-        syslog(LOG_ERR, "An error occurred during the data path decode to message pack!\n");
+        dzlog_error("An error occurred during the data path decode to message pack!");
     }
 }
 

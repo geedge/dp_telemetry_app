@@ -12,9 +12,9 @@ struct config
 {
     char config_path[PATH_MAX];
     char dy_config_path[PATH_MAX];
+    char zlog_config_path[PATH_MAX];
 
     cpu_set_t cpu_set_io;
-    uint8_t log_level;
 
     // device Information
     char * sled_ip;
@@ -33,7 +33,7 @@ struct config
     struct dp_trace_job_desc desc[DP_TRACE_JOB_NUM_MAX];
 };
 
-struct config * config_create();
+const struct config * config_create(const char * config_path, const char * dy_config_path);
 const struct config * global_config_get();
 void global_config_destroy();
 void config_load();
