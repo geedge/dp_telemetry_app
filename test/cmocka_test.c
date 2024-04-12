@@ -14,7 +14,7 @@ struct mr_instance * mr_instance = NULL;
 int setup(void ** state)
 {
     mr_instance = marsio_create();
-    config_create();
+    config_create("../src/dp_trace.conf", "../conf/dp_trace_dy.conf");
     return 0;
 }
 

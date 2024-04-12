@@ -52,7 +52,7 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8
     int ret = marsio_dp_trace_job_id_uesd_get(mr_instance, &jobs_id_used);
     if (ret < 0)
     {
-        syslog(LOG_ERR, "marsio_dp_trace_job_id_uesd_get faild");
+        dzlog_error("marsio_dp_trace_job_id_uesd_get faild");
         return;
     }
 

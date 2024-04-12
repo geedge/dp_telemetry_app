@@ -1,11 +1,12 @@
 #pragma once
 #include "marsio.h"
 
+#include <zlog.h>
+
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <syslog.h>
 #include <unistd.h>
 
 #ifndef MR_SYMBOL_MAX
@@ -27,7 +28,7 @@
     {                                                                                                                  \
         if (!(condition))                                                                                              \
         {                                                                                                              \
-            syslog(LOG_ERR, fmt, ##__VA_ARGS__);                                                                       \
+            dzlog_error(fmt, ##__VA_ARGS__);                                                                           \
             exit(EXIT_FAILURE);                                                                                        \
         }                                                                                                              \
     } while (0)

@@ -14,10 +14,13 @@
 extern struct mr_instance * mr_instance;
 static struct config * g_conf = NULL;
 
-struct config * config_create()
+const struct config * config_create(const char * config_path, const char * dy_config_path)
 {
     struct config * conf = calloc(1, sizeof(struct config));
     CHECK_OR_EXIT(conf, "calloc failed: %s", strerror(errno));
+
+    snprintf(conf->config_path, sizeof(conf->config_path), "%s", config_path);
+    snprintf(conf->dy_config_path, sizeof(conf->dy_config_path), "%s", dy_config_path);
 
     g_conf = conf;
     return conf;
@@ -38,7 +41,7 @@ void config_load()
 {
     if (access(g_conf->config_path, R_OK) != 0)
     {
-        syslog(LOG_ERR, "Configure File %s is not existed. Failed. ", g_conf->config_path);
+        dzlog_error("Configure File %s is not existed. Failed. ", g_conf->config_path);
         exit(EXIT_FAILURE);
     }
 
@@ -52,14 +55,8 @@ void config_load()
         CPU_SET(io_cores[i], &g_conf->cpu_set_io);
     }
 
-    unsigned int loglevel = LOG_ERR;
-    MESA_load_profile_uint_def(g_conf->config_path, "global", "loglevel", &loglevel, loglevel);
-    if (!(loglevel <= LOG_DEBUG && loglevel >= LOG_EMERG))
-    {
-        syslog(LOG_ERR, "global loglevel Must between LOG_DEBUG(7) and LOG_EMERG(0)");
-        exit(EXIT_FAILURE);
-    }
-    g_conf->log_level = loglevel;
+    MESA_load_profile_string_nodef(g_conf->config_path, "global", "zlog_config_path", g_conf->zlog_config_path,
+                                   sizeof(g_conf->zlog_config_path));
 
     char dp_trace_dir[PATH_MAX] = "/tmp";
     MESA_load_profile_string_nodef(g_conf->config_path, "global", "dp_trace_dir", dp_trace_dir, sizeof(dp_trace_dir));
@@ -75,7 +72,7 @@ void config_load()
     g_conf->sled_ip = getenv("SLED_IP");
     if (g_conf->sled_ip == NULL)
     {
-        syslog(LOG_WARNING, "SLED_IP environment variable does not exist.");
+        dzlog_warn("SLED_IP environment variable does not exist.");
     }
 
     MESA_load_profile_string_def(g_conf->config_path, "kafka", "borker_list", g_conf->broker_list,
@@ -92,12 +89,12 @@ void dynamic_config_load()
 {
     if (access(g_conf->dy_config_path, R_OK) != 0)
     {
-        syslog(LOG_ERR, "Dynamic configure file %s is not existed. Do not load dynamic configuration files. ",
-               g_conf->dy_config_path);
+        dzlog_error("Dynamic configure file %s is not existed. Do not load dynamic configuration files. ",
+                    g_conf->dy_config_path);
         return;
     }
 
-    syslog(LOG_INFO, "Loading data path trace configuration file...");
+    dzlog_info("Loading data path trace configuration file...");
 
     int ret = 0;
 
@@ -148,7 +145,7 @@ void dynamic_config_load()
         desc_i->snaplen = (snaplen == 0) ? UINT32_MAX : snaplen;
     }
 
-    syslog(LOG_INFO, "Loading data path trace configuration file is completed.");
+    dzlog_info("Loading data path trace configuration file is completed.");
 }
 
 void dynamic_config_load_and_apply()
