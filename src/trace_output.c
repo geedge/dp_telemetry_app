@@ -220,7 +220,7 @@ void cli_job_mbufs_write_process(marsio_buff_t * mbufs[], int nr_mbufs, job_bitm
     // todo: optimization
     unsigned int comment_max_size = 8192;
     comment = malloc(comment_max_size);
-    CHECK_OR_EXIT(comment, "malloc fail, insufficient memory");
+    DP_TRACE_VERIFY(comment, "malloc fail, insufficient memory");
 
     for (unsigned int i = 0; i < nr_mbufs; i++)
     {

@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -23,7 +24,7 @@
 
 #define TELEMETRY_DIM(a) (sizeof(a) / sizeof((a)[0]))
 
-#define CHECK_OR_EXIT(condition, fmt, ...)                                                                             \
+#define DP_TRACE_VERIFY(condition, fmt, ...)                                                                           \
     do                                                                                                                 \
     {                                                                                                                  \
         if (!(condition))                                                                                              \

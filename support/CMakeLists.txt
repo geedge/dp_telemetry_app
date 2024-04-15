@@ -101,3 +101,19 @@ set_target_properties(libzlog PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include
     INTERFACE_LINK_LIBRARIES pthread
 )
+
+### cJSON
+ExternalProject_Add(cJSON PREFIX cJSON
+        URL ${CMAKE_CURRENT_SOURCE_DIR}/cJSON-1.7.7.tar.gz
+        URL_MD5 715009c99728bf81d6c97352718650ff
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+				   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+				   -DBUILD_SHARED_AND_STATIC_LIBS=1)
+
+ExternalProject_Get_Property(cJSON INSTALL_DIR)
+file(MAKE_DIRECTORY ${INSTALL_DIR}/include)
+
+add_library(libcjson SHARED IMPORTED GLOBAL)
+add_dependencies(libcjson cJSON)
+set_property(TARGET libcjson PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib64/libcjson.a)
+set_property(TARGET libcjson PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)

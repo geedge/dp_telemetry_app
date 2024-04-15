@@ -2,7 +2,6 @@
 #include "common.h"
 #include "trace_output.h"
 
-#include <MESA/maat.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,38 +12,6 @@ struct dp_trace_job_occupy
 };
 
 static struct dp_trace_job_occupy dp_trace_job_occupy[DP_TRACE_JOB_NUM_MAX] = {};
-
-#if 0
-static void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line,
-                                 void ** ad, long argl, void * argp)
-{
-    return;
-}
-
-static void telemetry_job_del_cb(const char * table_name, int table_id, const char * key, const char * table_line,
-                                 void ** ad, long argl, void * argp)
-{
-    return;
-}
-
-int maat_register()
-{
-    struct maat_options * opts = maat_options_new();
-    struct maat * maat_instance = maat_new(opts, "");
-    maat_get_table_id(maat_instance, DP_TRACE_TELEMETRY_TABLE);
-
-    int ret = maat_plugin_table_ex_schema_register(maat_instance, DP_TRACE_TELEMETRY_TABLE, telemetry_job_add_cb,
-                                                   telemetry_job_del_cb, NULL, 0, NULL);
-
-    if (ret != 0)
-    {
-        MR_ERROR("failed at register callback of DP_TRACE_TELEMETRY_TABLE, ret = %d", ret);
-        return -1;
-    }
-
-    return 1;
-}
-#endif
 
 void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8_t role)
 {
@@ -68,14 +35,6 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8
             marsio_dp_trace_job_add(mr_instance, &desc[i]);
             dp_trace_job_occupy[rule_index].uesd = 1;
             dp_trace_job_occupy[rule_index].role = role;
-
-#if 1
-            // just for test
-            if (rule_index == 10)
-            {
-                dp_trace_job_occupy[rule_index].role = DP_TELEMETRY_ROLE;
-            }
-#endif
             continue;
         }
 

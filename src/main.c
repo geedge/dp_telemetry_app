@@ -1,6 +1,7 @@
 #include "common.h"
 #include "config.h"
 #include "job_ctx.h"
+#include "maat.h"
 #include "trace_output.h"
 
 #include <getopt.h>
@@ -42,12 +43,12 @@ void signal_event_init()
 
     evbase = event_base_new();
 
-    CHECK_OR_EXIT(evbase, "event_base_new failed");
+    DP_TRACE_VERIFY(evbase, "event_base_new failed");
 
     for (unsigned int i = 0; i < TELEMETRY_DIM(signals); i++)
     {
         evsignal[i] = evsignal_new(evbase, signals[i], signal_handler, NULL);
-        CHECK_OR_EXIT(evsignal[i], "create signal event failed. signal is:%d", signals[i]);
+        DP_TRACE_VERIFY(evsignal[i], "create signal event failed. signal is:%d", signals[i]);
         evsignal_add(evsignal[i], NULL);
     }
 
@@ -138,6 +139,8 @@ int main(int argc, char * argv[])
     marsio_init(mr_instance, appsym);
 
     dynamic_config_load_and_apply();
+
+    dp_trace_maat_init();
 
     signal_event_init();
 
