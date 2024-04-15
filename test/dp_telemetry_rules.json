@@ -1,0 +1,10 @@
+{
+    "plugin_table": [
+        {
+            "table_name": "DP_TRACE_TELEMETRY_TABLE",
+            "table_content": [
+                "0\t{\"job_id\":\"72694b1c-6833-4c46-acde-52e2d6409314\",\"bpf_expr\":\"ip host 172.19.199.171\"}\t1"
+            ]
+        }
+    ]
+}

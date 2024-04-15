@@ -1,7 +1,7 @@
 #include "config.h"
 #include "job_ctx.h"
 #include <MESA/MESA_prof_load.h>
-
+#include <MESA/maat.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
@@ -17,7 +17,7 @@ static struct config * g_conf = NULL;
 const struct config * config_create(const char * config_path, const char * dy_config_path)
 {
     struct config * conf = calloc(1, sizeof(struct config));
-    CHECK_OR_EXIT(conf, "calloc failed: %s", strerror(errno));
+    DP_TRACE_VERIFY(conf, "calloc failed: %s", strerror(errno));
 
     snprintf(conf->config_path, sizeof(conf->config_path), "%s", config_path);
     snprintf(conf->dy_config_path, sizeof(conf->dy_config_path), "%s", dy_config_path);
@@ -28,7 +28,7 @@ const struct config * config_create(const char * config_path, const char * dy_co
 
 const struct config * global_config_get()
 {
-    CHECK_OR_EXIT(g_conf, "global config is null.");
+    DP_TRACE_VERIFY(g_conf, "global config is null.");
     return g_conf;
 }
 
@@ -39,27 +39,28 @@ void global_config_destroy()
 
 void config_load()
 {
-    if (access(g_conf->config_path, R_OK) != 0)
+    const char * config_path = g_conf->config_path;
+    if (access(config_path, R_OK) != 0)
     {
-        dzlog_error("Configure File %s is not existed. Failed. ", g_conf->config_path);
+        printf("Configure File(%s) load failed:%s ", config_path, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     CPU_ZERO(&g_conf->cpu_set_io);
     unsigned int io_cores[MAX_LCORE] = {};
     int nr_io_cores = 0;
-    nr_io_cores = MESA_load_profile_uint_range(g_conf->config_path, "global", "iocore",
-                                               sizeof(io_cores) / sizeof(io_cores[0]), io_cores);
+    nr_io_cores =
+        MESA_load_profile_uint_range(config_path, "global", "iocore", sizeof(io_cores) / sizeof(io_cores[0]), io_cores);
     for (unsigned int i = 0; i < nr_io_cores; i++)
     {
         CPU_SET(io_cores[i], &g_conf->cpu_set_io);
     }
 
-    MESA_load_profile_string_nodef(g_conf->config_path, "global", "zlog_config_path", g_conf->zlog_config_path,
+    MESA_load_profile_string_nodef(config_path, "global", "zlog_config_path", g_conf->zlog_config_path,
                                    sizeof(g_conf->zlog_config_path));
 
     char dp_trace_dir[PATH_MAX] = "/tmp";
-    MESA_load_profile_string_nodef(g_conf->config_path, "global", "dp_trace_dir", dp_trace_dir, sizeof(dp_trace_dir));
+    MESA_load_profile_string_nodef(config_path, "global", "dp_trace_dir", dp_trace_dir, sizeof(dp_trace_dir));
     if (dp_trace_dir[strlen(dp_trace_dir) - 1] == '/')
     {
         dp_trace_dir[strlen(dp_trace_dir) - 1] = '\0';
@@ -72,17 +73,29 @@ void config_load()
     g_conf->sled_ip = getenv("SLED_IP");
     if (g_conf->sled_ip == NULL)
     {
-        dzlog_warn("SLED_IP environment variable does not exist.");
+        printf("SLED_IP environment variable does not exist.");
     }
 
-    MESA_load_profile_string_def(g_conf->config_path, "kafka", "borker_list", g_conf->broker_list,
-                                 sizeof(g_conf->broker_list), "");
-    MESA_load_profile_string_def(g_conf->config_path, "kafka", "topic_name", g_conf->topic_name,
-                                 sizeof(g_conf->topic_name), "");
-    MESA_load_profile_string_def(g_conf->config_path, "kafka", "sasl_username", g_conf->sasl_username,
+    MESA_load_profile_string_def(config_path, "kafka", "borker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
+                                 "");
+    MESA_load_profile_string_def(config_path, "kafka", "topic_name", g_conf->topic_name, sizeof(g_conf->topic_name),
+                                 "");
+    MESA_load_profile_string_def(config_path, "kafka", "sasl_username", g_conf->sasl_username,
                                  sizeof(g_conf->sasl_username), "");
-    MESA_load_profile_string_def(g_conf->config_path, "kafka", "sasl_password", g_conf->sasl_password,
+    MESA_load_profile_string_def(config_path, "kafka", "sasl_password", g_conf->sasl_password,
                                  sizeof(g_conf->sasl_password), "");
+
+    MESA_load_profile_int_def(config_path, "maat", "maat_log_level", &(g_conf->maat_log_level), LOG_LEVEL_FATAL);
+    MESA_load_profile_int_def(config_path, "maat", "maat_input_mode", &(g_conf->maat_input_mode), 0);
+    MESA_load_profile_string_def(config_path, "maat", "table_schema", g_conf->table_schema,
+                                 sizeof(g_conf->table_schema), "");
+    MESA_load_profile_string_def(config_path, "maat", "json_cfg_file", g_conf->json_cfg_file,
+                                 sizeof(g_conf->json_cfg_file), "");
+    MESA_load_profile_string_def(config_path, "maat", "maat_redis_server", g_conf->redis_server,
+                                 sizeof(g_conf->redis_server), "");
+    MESA_load_profile_string_def(config_path, "maat", "maat_redis_port_range", g_conf->redis_port_range,
+                                 sizeof(g_conf->redis_server), "6379");
+    MESA_load_profile_int_def(config_path, "maat", "maat_redis_db_index", &(g_conf->redis_db_idx), 0);
 }
 
 void dynamic_config_load()

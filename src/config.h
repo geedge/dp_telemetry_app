@@ -26,6 +26,16 @@ struct config
     char sasl_username[MR_SYMBOL_MAX];
     char sasl_password[MR_SYMBOL_MAX];
 
+    // maat
+    unsigned int maat_log_level;
+    unsigned int maat_input_mode;
+    char table_schema[PATH_MAX];
+    char json_cfg_file[PATH_MAX];
+
+    char redis_server[MR_SYMBOL_MAX];
+    char redis_port_range[MR_SYMBOL_MAX];
+    int redis_db_idx;
+
     // dp trace
     char dp_trace_dir[PATH_MAX];
     unsigned int dp_trace_file_max_size_in_KB;
