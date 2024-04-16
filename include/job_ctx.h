@@ -1,6 +1,5 @@
 #pragma once
 #include "marsio.h"
-#include <cjson/cJSON.h>
 #include <uuid/uuid.h>
 
 struct dp_trace_telemetry_desc

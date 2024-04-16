@@ -3,6 +3,7 @@
 #include "trace_output.h"
 
 #include <MESA/maat.h>
+#include <cjson/cJSON.h>
 #include <stdlib.h>
 #include <string.h>
 

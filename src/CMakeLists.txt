@@ -1,4 +1,4 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 include_directories(${CMAKE_SOURCE_DIR}/support/mpack)
 
@@ -23,16 +23,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             ${CMAKE_SOURCE_DIR}/etc
             ${CMAKE_BINARY_DIR}/etc
     COMMENT "copy config file to build directory"
-)
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_SOURCE_DIR}/test/table_schema.json
-            ${CMAKE_BINARY_DIR}/test/table_schema.json
-    COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_SOURCE_DIR}/test/dp_telemetry_rules.json
-            ${CMAKE_BINARY_DIR}/test/dp_telemetry_rules.json
-    COMMENT "copy maat config file to build directory"
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT Program)
