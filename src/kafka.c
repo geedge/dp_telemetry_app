@@ -22,23 +22,42 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
         dzlog_error("Error to set kafka \"topic.metadata.refresh.interval.ms\", %s.", kafka_errstr);
         goto error;
     }
-
-    assert(strlen(sasl_username) > 0);
-    assert(strlen(sasl_passwd) > 0);
-
-    rd_kafka_conf_set(rconf, "security.protocol", "sasl_plaintext", kafka_errstr, sizeof(kafka_errstr));
-    rd_kafka_conf_set(rconf, "sasl.mechanisms", "PLAIN", kafka_errstr, sizeof(kafka_errstr));
-    ret = rd_kafka_conf_set(rconf, "sasl.username", sasl_username, kafka_errstr, sizeof(kafka_errstr));
+    ret = rd_kafka_conf_set(rconf, "security.protocol", "plaintext", kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
-        dzlog_error("Error to set kafka \"sasl.username\", %s.", kafka_errstr);
+        dzlog_error("Error to set kafka \"security.protocol\", %s.", kafka_errstr);
         goto error;
     }
-    ret = rd_kafka_conf_set(rconf, "sasl.password", sasl_passwd, kafka_errstr, sizeof(kafka_errstr));
-    if (ret != RD_KAFKA_CONF_OK)
+
+    if (strlen(sasl_username) > 0 && strlen(sasl_passwd) > 0)
     {
-        dzlog_error("Error to set kafka \"sasl.password\", %s.", kafka_errstr);
-        goto error;
+
+        ret = rd_kafka_conf_set(rconf, "security.protocol", "sasl_plaintext", kafka_errstr, sizeof(kafka_errstr));
+        if (ret != RD_KAFKA_CONF_OK)
+        {
+            dzlog_error("Error to set kafka \"security.protocol\", %s.", kafka_errstr);
+            goto error;
+        }
+
+        ret = rd_kafka_conf_set(rconf, "sasl.mechanisms", "PLAIN", kafka_errstr, sizeof(kafka_errstr));
+        if (ret != RD_KAFKA_CONF_OK)
+        {
+            dzlog_error("Error to set kafka \"sasl.mechanisms\", %s.", kafka_errstr);
+            goto error;
+        }
+
+        ret = rd_kafka_conf_set(rconf, "sasl.username", sasl_username, kafka_errstr, sizeof(kafka_errstr));
+        if (ret != RD_KAFKA_CONF_OK)
+        {
+            dzlog_error("Error to set kafka \"sasl.username\", %s.", kafka_errstr);
+            goto error;
+        }
+        ret = rd_kafka_conf_set(rconf, "sasl.password", sasl_passwd, kafka_errstr, sizeof(kafka_errstr));
+        if (ret != RD_KAFKA_CONF_OK)
+        {
+            dzlog_error("Error to set kafka \"sasl.password\", %s.", kafka_errstr);
+            goto error;
+        }
     }
 
     // The conf object is freed by this function and must not be used or destroyed by the application sub-sequently.
