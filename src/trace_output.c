@@ -423,7 +423,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_writer_init_growable(&writer, data, size);
     mpack_build_map(&writer);
 
-    mpack_write_cstr(&writer, "timestamp");
+    mpack_write_cstr(&writer, "timestamp_us");
     mpack_write_i64(&writer, microseconds);
 
     char job_id_str[10];
@@ -450,10 +450,10 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, "source_port");
     mpack_write_i32(&writer, pkt_info.src_port);
 
-    mpack_write_cstr(&writer, "server_ip");
+    mpack_write_cstr(&writer, "destination_ip");
     mpack_write_cstr(&writer, pkt_info.dst_addr_str);
 
-    mpack_write_cstr(&writer, "server_port");
+    mpack_write_cstr(&writer, "destination_port");
     mpack_write_i32(&writer, pkt_info.dst_port);
 
     mpack_write_cstr(&writer, "packet");

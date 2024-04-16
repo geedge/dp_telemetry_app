@@ -10,6 +10,8 @@
 
 struct config
 {
+    char absolute_path[PATH_MAX];
+
     char config_path[PATH_MAX];
     char dy_config_path[PATH_MAX];
     char zlog_config_path[PATH_MAX];

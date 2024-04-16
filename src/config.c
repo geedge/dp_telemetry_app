@@ -14,6 +14,10 @@
 extern struct mr_instance * mr_instance;
 static struct config * g_conf = NULL;
 
+static void main_process_realpath_get(char * absolute_path, size_t size);
+static char * paths_combine(const char * restrict absolute_path, const char * restrict relative_path,
+                            char * restrict resolve_path);
+
 const struct config * config_create(const char * config_path, const char * dy_config_path)
 {
     struct config * conf = calloc(1, sizeof(struct config));
@@ -21,6 +25,8 @@ const struct config * config_create(const char * config_path, const char * dy_co
 
     snprintf(conf->config_path, sizeof(conf->config_path), "%s", config_path);
     snprintf(conf->dy_config_path, sizeof(conf->dy_config_path), "%s", dy_config_path);
+    main_process_realpath_get(conf->absolute_path, sizeof(conf->absolute_path));
+    printf("process absolute path %s\n", conf->absolute_path);
 
     g_conf = conf;
     return conf;
@@ -39,10 +45,12 @@ void global_config_destroy()
 
 void config_load()
 {
+    char tmp_path[PATH_MAX];
+
     const char * config_path = g_conf->config_path;
     if (access(config_path, R_OK) != 0)
     {
-        printf("Configure File(%s) load failed:%s ", config_path, strerror(errno));
+        printf("Configure File(%s) load failed:%s \n", config_path, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -56,16 +64,16 @@ void config_load()
         CPU_SET(io_cores[i], &g_conf->cpu_set_io);
     }
 
-    MESA_load_profile_string_nodef(config_path, "global", "zlog_config_path", g_conf->zlog_config_path,
-                                   sizeof(g_conf->zlog_config_path));
+    MESA_load_profile_string_nodef(config_path, "global", "zlog_config_path", tmp_path, sizeof(tmp_path));
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->zlog_config_path);
+    printf("zlog config path: %s\n", g_conf->zlog_config_path);
 
-    char dp_trace_dir[PATH_MAX] = "/tmp";
-    MESA_load_profile_string_nodef(config_path, "global", "dp_trace_dir", dp_trace_dir, sizeof(dp_trace_dir));
-    if (dp_trace_dir[strlen(dp_trace_dir) - 1] == '/')
+    MESA_load_profile_string_def(config_path, "global", "dp_trace_dir", tmp_path, sizeof(tmp_path), "/tmp");
+    if (tmp_path[strlen(tmp_path) - 1] == '/')
     {
-        dp_trace_dir[strlen(dp_trace_dir) - 1] = '\0';
+        tmp_path[strlen(tmp_path) - 1] = '\0';
     }
-    snprintf(g_conf->dp_trace_dir, sizeof(g_conf->dp_trace_dir), "%s", dp_trace_dir);
+    snprintf(g_conf->dp_trace_dir, sizeof(g_conf->dp_trace_dir), "%s", tmp_path);
 
     MESA_load_profile_string_def(g_conf->device_group, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "unknow");
@@ -73,7 +81,7 @@ void config_load()
     g_conf->sled_ip = getenv("SLED_IP");
     if (g_conf->sled_ip == NULL)
     {
-        printf("SLED_IP environment variable does not exist.");
+        printf("SLED_IP environment variable does not exist.\n");
     }
 
     MESA_load_profile_string_def(config_path, "kafka", "borker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
@@ -87,10 +95,15 @@ void config_load()
 
     MESA_load_profile_int_def(config_path, "maat", "maat_log_level", &(g_conf->maat_log_level), LOG_LEVEL_FATAL);
     MESA_load_profile_int_def(config_path, "maat", "maat_input_mode", &(g_conf->maat_input_mode), 0);
-    MESA_load_profile_string_def(config_path, "maat", "table_schema", g_conf->table_schema,
-                                 sizeof(g_conf->table_schema), "");
-    MESA_load_profile_string_def(config_path, "maat", "json_cfg_file", g_conf->json_cfg_file,
-                                 sizeof(g_conf->json_cfg_file), "");
+
+    MESA_load_profile_string_def(config_path, "maat", "table_schema", tmp_path, sizeof(tmp_path), "");
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->table_schema);
+    printf("maat table_schema path: %s\n", g_conf->table_schema);
+
+    MESA_load_profile_string_def(config_path, "maat", "json_cfg_file", tmp_path, sizeof(tmp_path), "");
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->json_cfg_file);
+    printf("maat json config file path: %s\n", g_conf->json_cfg_file);
+
     MESA_load_profile_string_def(config_path, "maat", "maat_redis_server", g_conf->redis_server,
                                  sizeof(g_conf->redis_server), "");
     MESA_load_profile_string_def(config_path, "maat", "maat_redis_port_range", g_conf->redis_port_range,
@@ -165,4 +178,40 @@ void dynamic_config_load_and_apply()
 {
     dynamic_config_load();
     job_rule_apply(g_conf->desc, TELEMETRY_DIM(g_conf->desc), DP_TRACE_ROLE);
+}
+
+//////////////////////// helper function /////////////////////////
+static void main_process_realpath_get(char * absolute_path, size_t size)
+{
+    // readlink requires "/proc/self/exe" on Linux and "/proc/curproc/file" on FreeBSD
+    // https://stackoverflow.com/questions/933850/how-do-i-find-the-location-of-the-executable-in-c
+    // this function only for linux
+    ssize_t len = readlink("/proc/self/exe", absolute_path, size - 1);
+    DP_TRACE_VERIFY(len != -1, "get main process realpath failed:%s", strerror(errno));
+    absolute_path[len] = '\0';
+}
+
+// Combine relative paths and absolute paths into a new absolute path
+static char * paths_combine(const char * restrict absolute_path, const char * restrict relative_path,
+                            char * restrict resolve_path)
+{
+    if (relative_path[0] == '/')
+    {
+        strcpy(resolve_path, relative_path);
+        return resolve_path;
+    }
+
+    char combine_path[PATH_MAX];
+    strcpy(combine_path, absolute_path);
+
+    char * last_slash = strrchr(combine_path, '/');
+    DP_TRACE_VERIFY(last_slash != NULL, "Invalid absolute path.");
+    *last_slash = '\0';
+
+    strcat(combine_path, "/");
+    strcat(combine_path, relative_path);
+
+    realpath(combine_path, resolve_path);
+
+    return resolve_path;
 }
