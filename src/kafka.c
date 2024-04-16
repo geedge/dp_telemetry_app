@@ -10,7 +10,7 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
 
     rconf = rd_kafka_conf_new();
 
-    ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", "1000000", kafka_errstr, sizeof(kafka_errstr));
+    ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", "1000", kafka_errstr, sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
         dzlog_error("Error to set kafka \"queue.buffering.max.messages\", %s.", kafka_errstr);

@@ -47,7 +47,7 @@ int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
     mpack_tree_parse(&tree);
 
     mpack_node_t root = mpack_tree_root(&tree);
-    packet.microseconds = mpack_node_i64(mpack_node_map_cstr(root, "timestamp"));
+    packet.microseconds = mpack_node_i64(mpack_node_map_cstr(root, "timestamp_us"));
 
     mpack_node_copy_cstr(mpack_node_map_cstr(root, "job_id"), packet.job_id_str, sizeof(packet.job_id_str));
 
@@ -59,9 +59,9 @@ int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
 
     packet.source_port = mpack_node_i32(mpack_node_map_cstr(root, "source_port"));
 
-    mpack_node_copy_cstr(mpack_node_map_cstr(root, "server_ip"), packet.server_ip, sizeof(packet.server_ip));
+    mpack_node_copy_cstr(mpack_node_map_cstr(root, "destination_ip"), packet.server_ip, sizeof(packet.server_ip));
 
-    packet.server_port = mpack_node_i32(mpack_node_map_cstr(root, "server_port"));
+    packet.server_port = mpack_node_i32(mpack_node_map_cstr(root, "destination_port"));
 
     packet.packet = mpack_node_bin_data(mpack_node_map_cstr(root, "packet"));
 

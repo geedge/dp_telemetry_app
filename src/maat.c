@@ -148,6 +148,7 @@ static void telemetry_job_add_cb(const char * table_name, int table_id, const ch
     }
 
     job_desc->rule_index = index;
+    job_desc->sampling = 1;
     job_desc->enable = true;
 
     memcpy(&telemetry_descs[index], &telemetry_desc, sizeof(struct dp_trace_telemetry_desc));
