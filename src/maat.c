@@ -3,7 +3,6 @@
 #include "job_ctx.h"
 
 #include <MESA/maat.h>
-#include <cjson/cJSON.h>
 
 static struct maat * dp_trace_maat_instance_create()
 {
