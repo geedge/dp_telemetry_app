@@ -2,6 +2,7 @@
 #include "common.h"
 #include "trace_output.h"
 
+#include <MESA/maat.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,6 +13,9 @@ struct dp_trace_job_occupy
 };
 
 static struct dp_trace_job_occupy dp_trace_job_occupy[DP_TRACE_JOB_NUM_MAX] = {};
+static struct dp_trace_telemetry_desc telemetry_descs[DP_TRACE_JOB_NUM_MAX] = {};
+
+static int telemetry_unused_job_index_get();
 
 void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8_t role)
 {
@@ -55,6 +59,81 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8
     }
 }
 
+void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line, void ** ad,
+                          long argl, void * argp)
+{
+    int ret = 0;
+    size_t offset = 0;
+    size_t len = 0;
+    char * json_str = NULL;
+    cJSON * json = NULL;
+
+    ret = maat_helper_read_column(table_line, 2, &offset, &len);
+    if (ret < 0)
+    {
+        dzlog_error("fail to get data path rule in maat.");
+        goto out;
+    }
+
+    json_str = calloc(sizeof(char), len + 1);
+    memcpy(json_str, table_line + offset, len);
+    json = cJSON_Parse(json_str);
+    if (json == NULL)
+    {
+        dzlog_error("Invalid decryption parameter: %s", table_line);
+        goto out;
+    }
+
+    struct dp_trace_telemetry_desc telemetry_desc = {};
+    struct dp_trace_job_desc * job_desc = &telemetry_desc.job_desc;
+
+    cJSON * uuid_obj = cJSON_GetObjectItem(json, "job_id");
+    DP_TRACE_VERIFY(cJSON_IsString(uuid_obj), "uuid is not string");
+    ret = uuid_parse(uuid_obj->valuestring, telemetry_desc.uuid);
+    if (ret != 0)
+    {
+        dzlog_error("uuid parsing failed: %s", uuid_obj->valuestring);
+        goto out;
+    }
+
+    cJSON * bpf_obj = cJSON_GetObjectItem(json, "bpf_expr");
+    DP_TRACE_VERIFY(cJSON_IsString(bpf_obj), "bpf expr is not string");
+    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_obj->valuestring);
+
+    int index = telemetry_unused_job_index_get();
+    if (index < 0)
+    {
+        dzlog_warn("no enough job for bpf_expr:", job_desc->bpf_expr);
+        goto out;
+    }
+
+    job_desc->rule_index = index;
+    job_desc->sampling = 1;
+    job_desc->enable = true;
+
+    memcpy(&telemetry_descs[index], &telemetry_desc, sizeof(struct dp_trace_telemetry_desc));
+
+    job_rule_apply(&telemetry_descs[index].job_desc, 1, DP_TELEMETRY_ROLE);
+
+    *ad = &telemetry_descs[index];
+
+out:
+    if (json_str)
+        cJSON_Delete(json);
+    if (json_str)
+        free(json_str);
+    return;
+}
+
+void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp)
+{
+    struct dp_trace_telemetry_desc * telemetry_desc = *ad;
+    struct dp_trace_job_desc * job_desc = &telemetry_desc->job_desc;
+    job_desc->enable = false;
+    job_rule_apply(job_desc, 1, DP_TELEMETRY_ROLE);
+    return;
+}
+
 int is_job_id_used(job_bitmap_t job_id)
 {
     unsigned int index = job_id_to_index(job_id);
@@ -80,4 +159,30 @@ job_bitmap_t index_to_job_id(unsigned int index)
 {
     assert(index < DP_TRACE_JOB_NUM_MAX);
     return 1 << index;
+}
+
+void telemetry_job_uuid_get(job_bitmap_t job_id, unsigned char * uu)
+{
+    unsigned int index = job_id_to_index(job_id);
+    uuid_copy(uu, telemetry_descs[index].uuid);
+}
+
+static int telemetry_unused_job_index_get()
+{
+#define TELEMETRY_INDEX_START 8
+#define TELEMETRY_INDEX_END DP_TRACE_JOB_NUM_MAX
+
+    int ret = -1;
+    for (unsigned int i = TELEMETRY_INDEX_START; i < TELEMETRY_INDEX_END; i++)
+    {
+        job_bitmap_t job_id = index_to_job_id(i);
+        if (is_job_id_used(job_id))
+        {
+            continue;
+        }
+        ret = i;
+        break;
+    }
+
+    return ret;
 }
