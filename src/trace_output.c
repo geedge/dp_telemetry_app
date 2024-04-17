@@ -47,18 +47,7 @@ void dp_trace_output_init()
     // pcapng file path init
     const char * dp_trace_dir = conf->dp_trace_dir;
     int ret = mkdir(dp_trace_dir, 0755);
-    if (ret != 0 && errno != EEXIST)
-    {
-        dzlog_error("Failed to create directory:%s.%s", dp_trace_dir, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    for (unsigned int i = 0; i < TELEMETRY_DIM(dp_trace_output); i++)
-    {
-        asprintf(&dp_trace_output[i].file_path, "%s/dp_trace_%u.pcapng", dp_trace_dir, i);
-        asprintf(&dp_trace_output[i].file_bak_path, "%s/dp_trace_%u.pcapng.1", dp_trace_dir, i);
-        asprintf(&dp_trace_output[i].file_middle_path, "%s/dp_trace_%u.pcapng.2", dp_trace_dir, i);
-    }
+    DP_TRACE_VERIFY(ret == 0 || errno == EEXIST, "Failed to create directory:%s.%s", dp_trace_dir, strerror(errno));
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -66,12 +55,12 @@ void dp_trace_output_init()
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     for (unsigned int i = 0; i < TELEMETRY_DIM(dp_trace_output); i++)
     {
+        asprintf(&dp_trace_output[i].file_path, "%s/dp_trace_%u.pcapng", dp_trace_dir, i);
+        asprintf(&dp_trace_output[i].file_bak_path, "%s/dp_trace_%u.pcapng.1", dp_trace_dir, i);
+        asprintf(&dp_trace_output[i].file_middle_path, "%s/dp_trace_%u.pcapng.2", dp_trace_dir, i);
+
         ret = pthread_mutex_init(&dp_trace_output[i].file_mutex, &attr);
-        if (ret != 0)
-        {
-            dzlog_error("pthread_mutex_init failed(ret=%d)", ret);
-            exit(EXIT_FAILURE);
-        }
+        DP_TRACE_VERIFY(ret == 0, "pthread_mutex_init failed(ret = % d)", ret);
     }
 
     kafka_handle = kafka_handle_create(conf->broker_list, conf->sasl_password, conf->sasl_username);
@@ -105,7 +94,7 @@ void * dp_trace_process_thread(void * arg)
 
         for (unsigned int i = 0; i < DP_TRACE_JOB_NUM_MAX; i++)
         {
-            unsigned int nr_mbufs = nr_jobs_mbufs[i];
+            const unsigned int nr_mbufs = nr_jobs_mbufs[i];
             if (nr_mbufs == 0)
             {
                 continue;
@@ -135,8 +124,9 @@ void * dp_trace_process_thread(void * arg)
             else
             {
                 dzlog_info("The job has been deleted. The trace content corresponding to the job has been discarded.");
-                marsio_dp_trace_free(mr_instance, class_mbufs[i], nr_mbufs);
             }
+
+            marsio_dp_trace_free(mr_instance, class_mbufs[i], nr_mbufs);
         }
     }
 }
@@ -248,7 +238,6 @@ unlock:
     dp_trace_file_mutex_unlock(job_id);
 
 end:
-    marsio_dp_trace_free(mr_instance, mbufs, nr_mbufs);
     free(comment);
     return;
 }
@@ -513,6 +502,7 @@ static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, u
 
 #ifndef NDEBUG
     unsigned int comment_cnt = 0;
+    unsigned int trace_comment_cnt = 0;
 #endif
 
     while (position < trace_buff_info.buffer_used)
@@ -523,22 +513,28 @@ static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, u
         const char * str = cur + sizeof(struct dp_trace_record_header);
         const unsigned int str_len = record_header->recode_len;
 
-        int n = snprintf(data, size, "[%s:%s:] %ld.%ld ", record_header->appsym, record_header->module,
-                         record_header->ts.tv_sec, record_header->ts.tv_nsec);
-        if (unlikely(n < 0 || n >= size))
-            return -1;
-        size -= n;
-        data += n;
+        if (record_header->tag == DP_TRACE_RECORD_TYPE_TRACE)
+        {
+            int n = snprintf(data, size, "[%s:%s:] %ld.%ld ", record_header->appsym, record_header->module,
+                             record_header->ts.tv_sec, record_header->ts.tv_nsec);
+            if (unlikely(n < 0 || n >= size))
+                return -1;
+            size -= n;
+            data += n;
 
-        if (unlikely(size - 2 < str_len))
-            return -1;
-        memcpy(data, str, str_len);
-        size -= str_len;
-        data += str_len;
+            if (unlikely(size - 2 < str_len))
+                return -1;
+            memcpy(data, str, str_len);
+            size -= str_len;
+            data += str_len;
 
-        *data = '\n';
-        size--;
-        data++;
+            *data = '\n';
+            size--;
+            data++;
+#ifndef NDEBUG
+            trace_comment_cnt++;
+#endif
+        }
 
         position += sizeof(struct dp_trace_record_header) + str_len;
 #ifndef NDEBUG
@@ -551,7 +547,8 @@ static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, u
 
 #ifndef NDEBUG
     uint16_t avali = trace_buff_info.buffer_len - trace_buff_info.buffer_used;
-    snprintf(data, size, "used: %u, avali: %u, comment: %u", trace_buff_info.buffer_used, avali, comment_cnt);
+    snprintf(data, size, "used: %u, avali: %u, all comment: %u, trace comment %u", trace_buff_info.buffer_used, avali,
+             comment_cnt, trace_comment_cnt);
 #else
     *data = '\0';
 #endif

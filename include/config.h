@@ -42,6 +42,8 @@ struct config
     char dp_trace_dir[PATH_MAX];
     unsigned int dp_trace_file_max_size_in_KB;
     unsigned int dp_trace_merge_timeout;
+
+    unsigned int nr_desc;
     struct dp_trace_job_desc desc[DP_TRACE_JOB_NUM_MAX];
 };
 

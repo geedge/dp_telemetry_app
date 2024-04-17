@@ -14,9 +14,7 @@
 extern struct mr_instance * mr_instance;
 static struct config * g_conf = NULL;
 
-static void main_process_realpath_get(char * absolute_path, size_t size);
-static char * paths_combine(const char * restrict absolute_path, const char * restrict relative_path,
-                            char * restrict resolve_path);
+static void main_program_realpath_get(char * absolute_path, size_t size);
 
 const struct config * config_create(const char * config_path, const char * dy_config_path)
 {
@@ -25,7 +23,7 @@ const struct config * config_create(const char * config_path, const char * dy_co
 
     snprintf(conf->config_path, sizeof(conf->config_path), "%s", config_path);
     snprintf(conf->dy_config_path, sizeof(conf->dy_config_path), "%s", dy_config_path);
-    main_process_realpath_get(conf->absolute_path, sizeof(conf->absolute_path));
+    main_program_realpath_get(conf->absolute_path, sizeof(conf->absolute_path));
     printf("process absolute path %s\n", conf->absolute_path);
 
     g_conf = conf;
@@ -34,7 +32,7 @@ const struct config * config_create(const char * config_path, const char * dy_co
 
 const struct config * global_config_get()
 {
-    DP_TRACE_VERIFY(g_conf, "global config is null.");
+    assert(g_conf != NULL);
     return g_conf;
 }
 
@@ -65,7 +63,7 @@ void config_load()
     }
 
     MESA_load_profile_string_nodef(config_path, "global", "zlog_config_path", tmp_path, sizeof(tmp_path));
-    paths_combine(g_conf->absolute_path, tmp_path, g_conf->zlog_config_path);
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->zlog_config_path, sizeof(g_conf->zlog_config_path));
     printf("zlog config path: %s\n", g_conf->zlog_config_path);
 
     MESA_load_profile_string_def(config_path, "global", "dp_trace_dir", tmp_path, sizeof(tmp_path), "/tmp");
@@ -97,11 +95,11 @@ void config_load()
     MESA_load_profile_int_def(config_path, "maat", "maat_input_mode", &(g_conf->maat_input_mode), 0);
 
     MESA_load_profile_string_def(config_path, "maat", "table_schema", tmp_path, sizeof(tmp_path), "");
-    paths_combine(g_conf->absolute_path, tmp_path, g_conf->table_schema);
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->table_schema, sizeof(g_conf->table_schema));
     printf("maat table_schema path: %s\n", g_conf->table_schema);
 
     MESA_load_profile_string_def(config_path, "maat", "json_cfg_file", tmp_path, sizeof(tmp_path), "");
-    paths_combine(g_conf->absolute_path, tmp_path, g_conf->json_cfg_file);
+    paths_combine(g_conf->absolute_path, tmp_path, g_conf->json_cfg_file, sizeof(g_conf->json_cfg_file));
     printf("maat json config file path: %s\n", g_conf->json_cfg_file);
 
     MESA_load_profile_string_def(config_path, "maat", "maat_redis_server", g_conf->redis_server,
@@ -134,6 +132,7 @@ void dynamic_config_load()
                                  &dp_trace_merge_timeout);
     g_conf->dp_trace_merge_timeout = dp_trace_merge_timeout;
 
+    g_conf->nr_desc = 0;
     memset(g_conf->desc, 0, sizeof(g_conf->desc));
     for (int rule_index = 0; rule_index < DP_TRACE_JOB_NUM_MAX; rule_index++)
     {
@@ -160,7 +159,7 @@ void dynamic_config_load()
         MESA_load_profile_uint_nodef(g_conf->dy_config_path, dp_trace_section, "snaplen", &snaplen);
 
         struct dp_trace_job_desc * desc = (struct dp_trace_job_desc *)&g_conf->desc;
-        struct dp_trace_job_desc * desc_i = &desc[rule_index];
+        struct dp_trace_job_desc * desc_i = &desc[g_conf->nr_desc++];
         desc_i->enable = (enable == 0) ? false : true;
         desc_i->rule_index = rule_index;
 
@@ -177,11 +176,11 @@ void dynamic_config_load()
 void dynamic_config_load_and_apply()
 {
     dynamic_config_load();
-    job_rule_apply(g_conf->desc, TELEMETRY_DIM(g_conf->desc), DP_TRACE_ROLE);
+    job_rule_apply(g_conf->desc, g_conf->nr_desc, DP_TRACE_ROLE);
 }
 
 //////////////////////// helper function /////////////////////////
-static void main_process_realpath_get(char * absolute_path, size_t size)
+static void main_program_realpath_get(char * absolute_path, size_t size)
 {
     // readlink requires "/proc/self/exe" on Linux and "/proc/curproc/file" on FreeBSD
     // https://stackoverflow.com/questions/933850/how-do-i-find-the-location-of-the-executable-in-c
@@ -189,29 +188,4 @@ static void main_process_realpath_get(char * absolute_path, size_t size)
     ssize_t len = readlink("/proc/self/exe", absolute_path, size - 1);
     DP_TRACE_VERIFY(len != -1, "get main process realpath failed:%s", strerror(errno));
     absolute_path[len] = '\0';
-}
-
-// Combine relative paths and absolute paths into a new absolute path
-static char * paths_combine(const char * restrict absolute_path, const char * restrict relative_path,
-                            char * restrict resolve_path)
-{
-    if (relative_path[0] == '/')
-    {
-        strcpy(resolve_path, relative_path);
-        return resolve_path;
-    }
-
-    char combine_path[PATH_MAX];
-    strcpy(combine_path, absolute_path);
-
-    char * last_slash = strrchr(combine_path, '/');
-    DP_TRACE_VERIFY(last_slash != NULL, "Invalid absolute path.");
-    *last_slash = '\0';
-
-    strcat(combine_path, "/");
-    strcat(combine_path, relative_path);
-
-    realpath(combine_path, resolve_path);
-
-    return resolve_path;
 }
