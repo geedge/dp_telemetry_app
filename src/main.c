@@ -1,6 +1,5 @@
 #include "common.h"
 #include "config.h"
-#include "job_ctx.h"
 #include "maat.h"
 #include "trace_output.h"
 
@@ -12,13 +11,13 @@
 #include <stdlib.h>
 #include <sys/signalfd.h>
 
-static char appsym[64] = "dp_trace_telemetry";
+static const char appsym[64] = "dp_trace_telemetry";
 
 struct mr_instance * mr_instance = NULL;
+unsigned int zlog_env_is_init = 0;
 
 static void signal_handler(evutil_socket_t fd, short what, void * arg)
 {
-
     switch (fd)
     {
     case SIGHUP:
@@ -43,7 +42,7 @@ void signal_event_init()
 
     evbase = event_base_new();
 
-    DP_TRACE_VERIFY(evbase, "event_base_new failed");
+    DP_TRACE_VERIFY(evbase != NULL, "event_base_new failed");
 
     for (unsigned int i = 0; i < TELEMETRY_DIM(signals); i++)
     {
@@ -53,32 +52,33 @@ void signal_event_init()
     }
 
     pthread_t tid;
-    if (pthread_create(&tid, NULL, signal_event_thread_dispatch, evbase) != 0)
-    {
-        dzlog_error("failed to create thread for event_base dispatch");
-        exit(EXIT_FAILURE);
-    }
+    int ret = pthread_create(&tid, NULL, signal_event_thread_dispatch, evbase);
+    DP_TRACE_VERIFY(ret == 0, "failed to create thread for event_base dispatch.return value:%d", ret);
 }
 
-void usage()
+void usage(const char * program_name)
 {
-    fprintf(stdout, "Usage:\n"
-                    "\n"
-                    "   dp_trace_telemetry [option]\n"
-                    "\n"
-                    "Options:\n"
-                    "\n"
-                    "   -c config file path\n"
-                    "   -d dynamic config file path\n"
-                    "   -v show current version\n"
-                    "   -h \n"
-                    "\n");
+    fprintf(stdout,
+            "Usage:\n"
+            "\n"
+            "   %s [option]\n"
+            "\n"
+            "Options:\n"
+            "\n"
+            "   -c config file path\n"
+            "   -d dynamic config file path\n"
+            "   -v show current version\n"
+            "   -h \n"
+            "\n",
+            program_name);
     exit(0);
 }
 
 int main(int argc, char * argv[])
 {
     int ret = 0;
+    char * arg0_dup = strdup(argv[0]);
+    const char * program_name = basename(arg0_dup);
 
     char config_path[PATH_MAX];
     char dy_config_path[PATH_MAX];
@@ -89,7 +89,7 @@ int main(int argc, char * argv[])
         switch (opt)
         {
         case 'h': {
-            usage();
+            usage(program_name);
             break;
         }
         case 'c': {
@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
             exit(0);
         }
         default:
-            usage();
+            usage(program_name);
             break;
         }
     }
@@ -124,19 +124,22 @@ int main(int argc, char * argv[])
         printf("fail in dzlog_int.\n");
         if (zlog_profile_error != NULL)
         {
-            printf("The zlog error log is recorded in:%s\n", zlog_profile_error);
+            printf("The dzlog_init function error infomation is recorded in:%s\n", zlog_profile_error);
         }
-        return 0;
+        exit(EXIT_FAILURE);
     }
+    zlog_env_is_init = 1;
 
     dp_trace_output_init();
 
     mr_instance = marsio_create();
 
     cpu_set_t cpu_set_io = conf->cpu_set_io;
-    marsio_option_set(mr_instance, MARSIO_OPT_THREAD_MASK_IN_CPUSET, &cpu_set_io, sizeof(cpu_set_io));
+    ret = marsio_option_set(mr_instance, MARSIO_OPT_THREAD_MASK_IN_CPUSET, &cpu_set_io, sizeof(cpu_set_io));
+    DP_TRACE_VERIFY(ret >= 0, "marsio_option_set failed.");
 
-    marsio_init(mr_instance, appsym);
+    ret = marsio_init(mr_instance, appsym);
+    DP_TRACE_VERIFY(ret >= 0, "marsio init failed.");
 
     dynamic_config_load_and_apply();
 
@@ -167,5 +170,6 @@ int main(int argc, char * argv[])
     }
 
     marsio_destory(mr_instance);
-    fprintf(stdout, "L2FWD is terminated. ");
+    free(arg0_dup);
+    dzlog_info("%s is terminated.", program_name);
 }

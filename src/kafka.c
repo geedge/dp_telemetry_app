@@ -1,5 +1,6 @@
 #include "kafka.h"
 #include "common.h"
+#include <errno.h>
 
 rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd)
 {
@@ -86,15 +87,30 @@ error:
     {
         rd_kafka_destroy(handle);
     }
-    return NULL;
+    exit(EXIT_FAILURE);
 }
 
 rd_kafka_topic_t * kafka_topic_new(rd_kafka_t * rk, const char * topic, rd_kafka_topic_conf_t * conf)
 {
-    return rd_kafka_topic_new(rk, topic, conf);
+    rd_kafka_topic_t * ret = rd_kafka_topic_new(rk, topic, conf);
+    if (ret == NULL)
+    {
+        rd_kafka_resp_err_t err = rd_kafka_last_error();
+        dzlog_error("rd_kafka_topic_new failed:%s", rd_kafka_err2str(err));
+        exit(EXIT_FAILURE);
+    }
+    return ret;
 }
 
 int kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
 {
-    return rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, (void *)payload, len, NULL, 0, NULL);
+    // Automatically release payload
+    // Even if the function fails to execute and returns -1, the payload will be released.
+    int ret = rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, (void *)payload, len, NULL, 0, NULL);
+    if (ret != 0)
+    {
+        rd_kafka_resp_err_t err = rd_kafka_last_error();
+        dzlog_error("rd_kafka_topic_new failed:%s", rd_kafka_err2str(err));
+    }
+    return ret;
 }

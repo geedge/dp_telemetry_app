@@ -24,12 +24,20 @@
 
 #define TELEMETRY_DIM(a) (sizeof(a) / sizeof((a)[0]))
 
+extern unsigned int zlog_env_is_init;
 #define DP_TRACE_VERIFY(condition, fmt, ...)                                                                           \
     do                                                                                                                 \
     {                                                                                                                  \
         if (!(condition))                                                                                              \
         {                                                                                                              \
-            dzlog_error(fmt, ##__VA_ARGS__);                                                                           \
+            if (zlog_env_is_init == 1)                                                                                 \
+            {                                                                                                          \
+                dzlog_error(fmt, ##__VA_ARGS__);                                                                       \
+            }                                                                                                          \
+            else                                                                                                       \
+            {                                                                                                          \
+                printf(fmt, ##__VA_ARGS__);                                                                            \
+            }                                                                                                          \
             exit(EXIT_FAILURE);                                                                                        \
         }                                                                                                              \
     } while (0)
@@ -40,7 +48,7 @@
 
 extern struct mr_instance * mr_instance;
 
-static bool is_directory_exists(const char * path)
+static inline bool is_directory_exists(const char * path)
 {
     struct stat info;
     if (stat(path, &info) != 0)
@@ -48,7 +56,42 @@ static bool is_directory_exists(const char * path)
     return S_ISDIR(info.st_mode) == 1;
 }
 
-static bool is_file_exists(const char * path)
+static inline bool is_file_exists(const char * path)
 {
     return access(path, F_OK) == 0;
+}
+
+// Combine relative paths and absolute paths into a new absolute path
+static inline char * paths_combine(const char * restrict prog_absolute_path, const char * restrict file_relative_path,
+                                   char * restrict resolve_path, size_t resolve_path_size)
+{
+    int prog_len = strlen(prog_absolute_path);
+    int file_len = strlen(file_relative_path);
+    if (prog_len + file_len + 1 > resolve_path_size)
+    {
+        return NULL;
+    }
+
+    if (file_relative_path[0] == '/')
+    {
+        strcpy(resolve_path, file_relative_path);
+        return resolve_path;
+    }
+
+    char combine_path[PATH_MAX];
+    strcpy(combine_path, prog_absolute_path);
+
+    char * last_slash = strrchr(combine_path, '/');
+    if (last_slash == NULL)
+    {
+        return NULL;
+    }
+    *last_slash = '\0';
+
+    strcat(combine_path, "/");
+    strcat(combine_path, file_relative_path);
+
+    realpath(combine_path, resolve_path);
+
+    return resolve_path;
 }

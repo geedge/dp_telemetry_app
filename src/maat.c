@@ -18,7 +18,6 @@ static struct maat * dp_trace_maat_instance_create()
     maat_options_set_logger(opts, "log/maat.log", (enum log_level)conf->maat_log_level);
     maat_options_set_instance_name(opts, "dp_trace_telemetry");
     maat_options_set_caller_thread_number(opts, 0);
-
     switch (conf->maat_input_mode)
     {
     case MAAT_INPUT_JSON:
@@ -26,7 +25,7 @@ static struct maat * dp_trace_maat_instance_create()
         if (ret != 0)
         {
             dzlog_error("maat_options_set_json_file function execution failed.");
-            goto error_out;
+            goto end;
         }
         break;
     case MAAT_INPUT_REDIS:
@@ -43,13 +42,13 @@ static struct maat * dp_trace_maat_instance_create()
         else
         {
             dzlog_error("Invalid redis port range %s, MAAT init failed.", conf->redis_port_range);
-            goto error_out;
+            goto end;
         }
         maat_options_set_redis(opts, conf->redis_server, redis_port_select, conf->redis_db_idx);
         break;
     default:
         dzlog_error("Invalid MAAT Input Mode: %d.", conf->maat_input_mode);
-        goto error_out;
+        goto end;
         break;
     }
 
@@ -57,15 +56,15 @@ static struct maat * dp_trace_maat_instance_create()
     if (!target)
     {
         dzlog_error("maat_new function execution failed.");
-        goto error_out;
+        goto end;
     }
 
-    maat_options_free(opts);
+end:
+    if (opts != NULL)
+    {
+        maat_options_free(opts);
+    }
     return target;
-
-error_out:
-    maat_options_free(opts);
-    return NULL;
 }
 
 void dp_trace_maat_init()
