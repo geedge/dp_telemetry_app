@@ -106,9 +106,25 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
         goto out;
     }
 
-    cJSON * bpf_obj = cJSON_GetObjectItem(json, "bpf_expr");
-    DP_TRACE_VERIFY(cJSON_IsString(bpf_obj), "bpf expr is not string");
-    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_obj->valuestring);
+    cJSON * job_name_obj = cJSON_GetObjectItem(json, "job_name");
+    DP_TRACE_VERIFY(cJSON_IsString(job_name_obj), "job_name is not string");
+    snprintf(telemetry_desc.job_name, sizeof(telemetry_desc.job_name), "%s", job_name_obj->valuestring);
+
+    cJSON * bpf_expr_obj = cJSON_GetObjectItem(json, "bpf_expr");
+    DP_TRACE_VERIFY(cJSON_IsString(bpf_expr_obj), "bpf expr is not string");
+    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_expr_obj->valuestring);
+
+    cJSON * pkt_cnt_max_obj = cJSON_GetObjectItem(json, "pkt_cnt_max");
+    DP_TRACE_VERIFY(cJSON_IsNumber(pkt_cnt_max_obj), "pkt_cnt_max is not number");
+    job_desc->pkt_cnt_max = pkt_cnt_max_obj->valueint;
+
+    cJSON * sampling_obj = cJSON_GetObjectItem(json, "sampling");
+    DP_TRACE_VERIFY(cJSON_IsNumber(sampling_obj), "sampling is not number");
+    job_desc->sampling = sampling_obj->valueint;
+
+    cJSON * snaplen_obj = cJSON_GetObjectItem(json, "snaplen");
+    DP_TRACE_VERIFY(cJSON_IsNumber(snaplen_obj), "snaplen is not number");
+    job_desc->snaplen = snaplen_obj->valueint;
 
     int index = telemetry_unused_job_index_get();
     if (index < 0)
@@ -118,7 +134,6 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     }
 
     job_desc->rule_index = index;
-    job_desc->sampling = 1;
     job_desc->enable = true;
 
     memcpy(&telemetry_descs[index], &telemetry_desc, sizeof(struct dp_trace_telemetry_desc));

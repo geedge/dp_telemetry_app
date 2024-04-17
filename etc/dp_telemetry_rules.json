@@ -3,7 +3,8 @@
         {
             "table_name": "DP_TRACE_TELEMETRY_TABLE",
             "table_content": [
-                "0\t{\"job_id\":\"72694b1c-6833-4c46-acde-52e2d6409314\",\"bpf_expr\":\"ip host 172.19.199.171\"}\t1"
+                "0\t{\"job_id\":\"72694b1c-6833-4c46-acde-52e2d6409314\",\"job_name\":\"test_xx\",\"bpf_expr\":\"ip host 172.19.199.171\",\"pkt_cnt_max\":100,\"timeout\":60,\"sampling\":2,\"snaplen\":100}\t1",
+                "1\t{\"job_id\":\"499a49aa-b4b9-4e8e-a66c-80d4cd40257b\",\"job_name\":\"test_2\",\"bpf_expr\":\"ether host 00:15:5d:b8:10:a6\",\"pkt_cnt_max\":100,\"timeout\":120,\"sampling\":2,\"snaplen\":100}\t1"
             ]
         }
     ]
