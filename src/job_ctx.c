@@ -114,9 +114,12 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     DP_TRACE_VERIFY(cJSON_IsString(bpf_expr_obj), "bpf expr is not string");
     snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_expr_obj->valuestring);
 
+#if 0
     cJSON * pkt_cnt_max_obj = cJSON_GetObjectItem(json, "pkt_cnt_max");
     DP_TRACE_VERIFY(cJSON_IsNumber(pkt_cnt_max_obj), "pkt_cnt_max is not number");
     job_desc->pkt_cnt_max = pkt_cnt_max_obj->valueint;
+#endif
+    job_desc->pkt_cnt_max = 0;
 
     cJSON * sampling_obj = cJSON_GetObjectItem(json, "sampling");
     DP_TRACE_VERIFY(cJSON_IsNumber(sampling_obj), "sampling is not number");

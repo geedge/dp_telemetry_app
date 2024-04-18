@@ -11,7 +11,6 @@
 
 #define MAX_LCORE 128
 
-extern struct mr_instance * mr_instance;
 static struct config * g_conf = NULL;
 
 static void main_program_realpath_get(char * absolute_path, size_t size);
@@ -72,6 +71,10 @@ void config_load()
         tmp_path[strlen(tmp_path) - 1] = '\0';
     }
     snprintf(g_conf->dp_trace_dir, sizeof(g_conf->dp_trace_dir), "%s", tmp_path);
+
+    MESA_load_profile_string_def(config_path, "global", "monit_file_path", g_conf->monit_file_path,
+                                 sizeof(g_conf->monit_file_path),
+                                 "/var/run/mrzcpd/mrmonit.app.dp_trace_telemetry.saving");
 
     MESA_load_profile_string_def(g_conf->device_group, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "unknow");

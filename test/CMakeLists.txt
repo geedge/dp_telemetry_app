@@ -7,6 +7,7 @@ set(DP_TRACE_TELEMETRY_SOURCES
     ${CMAKE_SOURCE_DIR}/src/trace_output.c
     ${CMAKE_SOURCE_DIR}/src/kafka.c
     ${CMAKE_SOURCE_DIR}/src/mocking.c
+    ${CMAKE_SOURCE_DIR}/src/monit.c
     ${CMAKE_SOURCE_DIR}/support/mpack/mpack.c)
 
 add_executable(cmocka_test cmocka_test.c  ${DP_TRACE_TELEMETRY_SOURCES})
