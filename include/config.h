@@ -15,6 +15,7 @@ struct config
     char config_path[PATH_MAX];
     char dy_config_path[PATH_MAX];
     char zlog_config_path[PATH_MAX];
+    char monit_file_path[PATH_MAX];
 
     cpu_set_t cpu_set_io;
 

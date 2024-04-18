@@ -1,6 +1,7 @@
 #include "common.h"
 #include "config.h"
 #include "maat.h"
+#include "monit.h"
 #include "trace_output.h"
 
 #include <getopt.h>
@@ -148,15 +149,15 @@ int main(int argc, char * argv[])
     signal_event_init();
 
     unsigned int nr_thread = CPU_COUNT(&conf->cpu_set_io);
-
-    if (nr_thread != 4)
+    if (nr_thread < DP_TRACE_RING_NUM)
     {
-        dzlog_error("Currently, four threads must be created to read the data. This restriction will be removed "
-                    "later");
+        dzlog_error("The number of cores must be greater than %u", DP_TRACE_RING_NUM);
         return 0;
     }
-
     dzlog_info("Thread Count = %d", nr_thread);
+
+    monit_init(nr_thread);
+
     pthread_t tmp_pid[nr_thread];
 
     for (int i = 0; i < nr_thread; i++)
