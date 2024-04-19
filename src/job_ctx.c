@@ -73,67 +73,50 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
                           long argl, void * argp)
 {
     int ret = 0;
-    size_t offset = 0;
-    size_t len = 0;
-    char * json_str = NULL;
-    cJSON * json = NULL;
-
-    ret = maat_helper_read_column(table_line, 2, &offset, &len);
-    if (ret < 0)
-    {
-        dzlog_error("fail to get data path rule in maat.");
-        goto out;
-    }
-
-    json_str = calloc(sizeof(char), len + 1);
-    memcpy(json_str, table_line + offset, len);
-    json = cJSON_Parse(json_str);
-    if (json == NULL)
-    {
-        dzlog_error("Invalid decryption parameter: %s", table_line);
-        goto out;
-    }
-
     struct dp_trace_telemetry_desc telemetry_desc = {};
     struct dp_trace_job_desc * job_desc = &telemetry_desc.job_desc;
 
-    cJSON * uuid_obj = cJSON_GetObjectItem(json, "job_id");
-    DP_TRACE_VERIFY(cJSON_IsString(uuid_obj), "uuid is not string");
-    ret = uuid_parse(uuid_obj->valuestring, telemetry_desc.uuid);
-    if (ret != 0)
+    char uuid[40] = {};
+    unsigned int pkt_cnt_max = 0;
+    char bpf_expr[MR_BPF_EXPRESSION_MAX];
+    unsigned int timeout = 0;
+    unsigned int sampling = 0;
+    unsigned int snaplen = 0;
+    unsigned int with_packet_capture = 0;
+    char device_group[512];
+    unsigned int is_valid = 0;
+
+    ret = sscanf(table_line, "%s\t%u\t%128[^\t]\t%u\t%u\t%u\t%u\t%s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
+                 &sampling, &snaplen, &with_packet_capture, device_group, &is_valid);
+    if (ret != 9)
     {
-        dzlog_error("uuid parsing failed: %s", uuid_obj->valuestring);
-        goto out;
+        dzlog_warn("maat parse config failed:%s", table_line);
+        return;
     }
 
-    cJSON * job_name_obj = cJSON_GetObjectItem(json, "job_name");
-    DP_TRACE_VERIFY(cJSON_IsString(job_name_obj), "job_name is not string");
-    snprintf(telemetry_desc.job_name, sizeof(telemetry_desc.job_name), "%s", job_name_obj->valuestring);
+    if (is_valid == 0)
+    {
+        dzlog_warn("rule is not valid:%s", table_line);
+        return;
+    }
 
-    cJSON * bpf_expr_obj = cJSON_GetObjectItem(json, "bpf_expr");
-    DP_TRACE_VERIFY(cJSON_IsString(bpf_expr_obj), "bpf expr is not string");
-    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_expr_obj->valuestring);
+    ret = uuid_parse(uuid, telemetry_desc.uuid);
+    if (ret != 0)
+    {
+        dzlog_error("uuid parsing failed: %s", uuid);
+        return;
+    }
 
-#if 0
-    cJSON * pkt_cnt_max_obj = cJSON_GetObjectItem(json, "pkt_cnt_max");
-    DP_TRACE_VERIFY(cJSON_IsNumber(pkt_cnt_max_obj), "pkt_cnt_max is not number");
-    job_desc->pkt_cnt_max = pkt_cnt_max_obj->valueint;
-#endif
-    job_desc->pkt_cnt_max = 0;
-
-    cJSON * sampling_obj = cJSON_GetObjectItem(json, "sampling");
-    DP_TRACE_VERIFY(cJSON_IsNumber(sampling_obj), "sampling is not number");
-    job_desc->sampling = sampling_obj->valueint;
-
-    cJSON * snaplen_obj = cJSON_GetObjectItem(json, "snaplen");
-    DP_TRACE_VERIFY(cJSON_IsNumber(snaplen_obj), "snaplen is not number");
-    job_desc->snaplen = snaplen_obj->valueint;
+    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_expr);
+    job_desc->pkt_cnt_max = pkt_cnt_max;
+    job_desc->sampling = sampling;
+    job_desc->snaplen = snaplen;
 
     int index = telemetry_unused_job_index_get();
     if (index < 0)
     {
         dzlog_warn("no enough job for bpf_expr:", job_desc->bpf_expr);
-        goto out;
+        return;
     }
 
     job_desc->rule_index = index;
@@ -144,13 +127,6 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     job_rule_apply(&telemetry_descs[index].job_desc, 1, DP_TELEMETRY_ROLE);
 
     *ad = &telemetry_descs[index];
-
-out:
-    if (json)
-        cJSON_Delete(json);
-    if (json_str)
-        free(json_str);
-    return;
 }
 
 void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp)

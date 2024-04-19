@@ -3,11 +3,10 @@
         "table_id": 1,
         "table_name": "DP_TRACE_TELEMETRY_TABLE",
         "table_type": "plugin",
-        "valid_column": 3,
+        "valid_column": 9,
         "custom": {
             "key": 1,
-            "key_type": "integer",
-            "key_len": 8
+            "key_type": "pointer"
         }
     }
 ]
