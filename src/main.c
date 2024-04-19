@@ -1,5 +1,6 @@
 #include "common.h"
 #include "config.h"
+#include "http_serv.h"
 #include "maat.h"
 #include "monit.h"
 #include "trace_output.h"
@@ -164,6 +165,8 @@ int main(int argc, char * argv[])
     {
         pthread_create(&tmp_pid[i], NULL, dp_trace_process_thread, (void *)(uintptr_t)i);
     }
+
+    http_serv_init();
 
     for (int i = 0; i < nr_thread; i++)
     {
