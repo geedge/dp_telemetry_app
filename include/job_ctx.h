@@ -5,7 +5,6 @@
 struct dp_trace_telemetry_desc
 {
     uuid_t uuid;
-    char job_name[128];
     struct dp_trace_job_desc job_desc;
 };
 

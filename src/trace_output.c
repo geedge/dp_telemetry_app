@@ -493,7 +493,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
         const char * comment = cur + sizeof(struct dp_trace_record_header);
         const unsigned int comment_len = record_header->recode_len;
 
-        if ((record_header->tag == DP_TRACE_RECORD_TYPE_TELEMETRY) != 0)
+        if ((record_header->type == DP_TRACE_RECORD_TYPE_TELEMETRY) != 0)
         {
             mpack_start_map(&writer, 4);
 
@@ -544,7 +544,7 @@ static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, u
         const char * str = cur + sizeof(struct dp_trace_record_header);
         const unsigned int str_len = record_header->recode_len;
 
-        if (record_header->tag == DP_TRACE_RECORD_TYPE_TRACE)
+        if (record_header->type == DP_TRACE_RECORD_TYPE_TRACE)
         {
             int n = snprintf(data, size, "[%s:%s:] %ld.%ld ", record_header->appsym, record_header->module,
                              record_header->ts.tv_sec, record_header->ts.tv_nsec);
