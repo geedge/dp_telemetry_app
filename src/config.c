@@ -76,8 +76,16 @@ void config_load()
                                  sizeof(g_conf->monit_file_path),
                                  "/var/run/mrzcpd/mrmonit.app.dp_trace_telemetry.saving");
 
-    MESA_load_profile_string_def(g_conf->device_group, "global", "device_group", g_conf->device_group,
+    MESA_load_profile_string_def(config_path, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "unknow");
+
+    MESA_load_profile_string_def(config_path, "http_server", "listen_addr", g_conf->str_listen_addr,
+                                 sizeof(g_conf->str_listen_addr), "127.0.0.1");
+
+    MESA_load_profile_uint_def(config_path, "http_server", "listen_port", &g_conf->listen_port, 10000);
+
+    MESA_load_profile_string_def(config_path, "http_server", "keep_alive_path", g_conf->keep_alive_path,
+                                 sizeof(g_conf->keep_alive_path), "/probe");
 
     g_conf->sled_ip = getenv("SLED_IP");
     if (g_conf->sled_ip == NULL)

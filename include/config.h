@@ -23,6 +23,11 @@ struct config
     char * sled_ip;
     char device_group[MR_SYMBOL_MAX];
 
+    // server
+    char str_listen_addr[INET6_ADDRSTRLEN];
+    unsigned int listen_port;
+    char keep_alive_path[MR_SYMBOL_MAX];
+
     // kafka
     char topic_name[MR_SYMBOL_MAX];
     char broker_list[1024];
