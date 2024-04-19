@@ -32,7 +32,13 @@ stages:
         - cd build
         - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         - make VERBOSE=1
-        - make package
+        - if [[ "${ENABLE_PACKAGE}" == "True" ]]; then
+                make package VERBOSE=1;
+                cp ~/rpm_upload_tools.py ./;
+                python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
+          else
+                echo "no need to execute the deploy script";
+          fi
 
 build:
     stage: build
@@ -48,6 +54,10 @@ build:
 deploy:
     stage: deploy
     extends: .build
+    variables:
+        ENABLE_PACKAGE: "True"
+        PULP3_REPO_NAME: "platform-stable-x86_64.el8"
+        PULP3_DIST_NAME: "platform-stable-x86_64.el8"
     parallel:
         matrix:
             - BUILD_TYPE: ["RelWithDebInfo"]
