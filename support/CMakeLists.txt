@@ -117,3 +117,6 @@ add_library(libcjson SHARED IMPORTED GLOBAL)
 add_dependencies(libcjson cJSON)
 set_property(TARGET libcjson PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib64/libcjson.a)
 set_property(TARGET libcjson PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include)
+
+### pcapng
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/pcapng)
