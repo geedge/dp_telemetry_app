@@ -73,8 +73,8 @@ void dp_trace_maat_init()
     struct maat * target = dp_trace_maat_instance_create();
     DP_TRACE_VERIFY(target, "create maat instance failed.");
 
-    int ret = maat_plugin_table_ex_schema_register(target, "DP_TRACE_TELEMETRY_TABLE", telemetry_job_add_cb,
+    int ret = maat_plugin_table_ex_schema_register(target, "DATAPATH_TELEMETRY_JOB", telemetry_job_add_cb,
                                                    telemetry_job_del_cb, NULL, 0, NULL);
-    DP_TRACE_VERIFY(ret == 0, "failed at register callback of DP_TRACE_TELEMETRY_TABLE.");
+    DP_TRACE_VERIFY(ret == 0, "failed at register callback of DATAPATH_TELEMETRY_JOB.");
     dzlog_info("data path trace maat init end");
 }

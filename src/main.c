@@ -24,6 +24,7 @@ static void signal_handler(evutil_socket_t fd, short what, void * arg)
     {
     case SIGHUP:
         dynamic_config_load_and_apply();
+        break;
     default:
         dzlog_warn("Received unexpected signal: %d", fd);
     }

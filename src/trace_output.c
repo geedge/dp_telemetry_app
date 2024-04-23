@@ -9,6 +9,7 @@
 
 #include <mpack.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/ip.h>
@@ -18,8 +19,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-
 
 struct pkt_inner_ip_port
 {
@@ -84,7 +83,7 @@ void dp_trace_output_init()
         DP_TRACE_VERIFY(ret == 0, "pthread_mutex_init failed(ret = % d)", ret);
     }
 
-    kafka_handle = kafka_handle_create(conf->broker_list, conf->sasl_password, conf->sasl_username);
+    kafka_handle = kafka_handle_create(conf->broker_list, conf->sasl_username, conf->sasl_password);
     kafka_topic = kafka_topic_new(kafka_handle, conf->topic_name, NULL);
 
     for (unsigned int i = 0; i < TELEMETRY_DIM(dp_trace_output); i++)
@@ -675,7 +674,7 @@ int marsio_pkt_inner_ip_port_get(const marsio_buff_t * mbuf, struct pkt_inner_ip
     }
     else if (l4_layer_type_id == LAYER_TYPE_ID_UDP)
     {
-        struct udphdr * udp_hdr = (struct udphdr *)tcp_ptr;
+        struct udphdr * udp_hdr = (struct udphdr *)udp_ptr;
         info->src_port = udp_hdr->uh_sport;
         info->dst_port = udp_hdr->uh_dport;
     }
