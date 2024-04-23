@@ -1,7 +1,7 @@
 [
     {
         "table_id": 1,
-        "table_name": "DP_TRACE_TELEMETRY_TABLE",
+        "table_name": "DATAPATH_TELEMETRY_JOB",
         "table_type": "plugin",
         "valid_column": 9,
         "custom": {
