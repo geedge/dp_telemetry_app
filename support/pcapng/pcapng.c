@@ -190,22 +190,25 @@ int pcapng_copy(marsio_buff_t * mbuf, uint32_t snaplen, const char * comment,
 {
     uint32_t orig_len = 0;
     uint32_t data_len = 0;
+    uint32_t pedding_data_len = 0;
     uint64_t timestamp;
     uint32_t len = 0;
+    uint32_t optlen = 0;
     struct pcapng_option * opt = NULL;
 
     orig_len = marsio_buff_buflen(mbuf);
     data_len = marsio_buff_datalen(mbuf);
     data_len = snaplen < data_len ? snaplen : data_len;
 
-    len += sizeof(struct pcapng_enhance_packet_block);
-    len += data_len;
+    // All blocks in a PcapNG file must be aligned to a 32 bit boundary.
+    pedding_data_len = ALIGN(data_len, sizeof(uint32_t));
 
     if (comment)
     {
-        len += pcapng_optlen(strlen(comment));
+        optlen += pcapng_optlen(strlen(comment));
     }
-    len += sizeof(uint32_t); /* Block length */
+
+    len = sizeof(struct pcapng_enhance_packet_block) + pedding_data_len + optlen + sizeof(uint32_t);
 
     /* Note: END_OPT necessary here. Wireshark doesn't do it. */
 
@@ -229,7 +232,7 @@ int pcapng_copy(marsio_buff_t * mbuf, uint32_t snaplen, const char * comment,
 
     memcpy((char *)epb + sizeof(*epb), marsio_buff_mtod(mbuf), data_len);
 
-    opt = (struct pcapng_option *)((char *)epb + sizeof(*epb) + data_len);
+    opt = (struct pcapng_option *)((char *)epb + sizeof(*epb) + pedding_data_len);
 
     if (comment)
     {
