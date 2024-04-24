@@ -37,6 +37,7 @@ struct config
     // maat
     unsigned int maat_log_level;
     unsigned int maat_input_mode;
+    unsigned int deferred_load_on;
     char table_schema[PATH_MAX];
     char json_cfg_file[PATH_MAX];
 

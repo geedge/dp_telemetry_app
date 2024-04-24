@@ -14,3 +14,12 @@ mkdir build && cd build
 cmake ..
 make
 ```
+
+## 运行
+
+拷贝etc目录到build目录。并根据实际情况，修改配置文件。
+
+```shell
+# build dir
+./src/dp_trace_telemetry -c etc/dp_trace.conf -d etc/dp_trace_dy.conf
+```
