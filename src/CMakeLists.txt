@@ -20,12 +20,12 @@ if(ENABLE_DEVELOP_MOCKING)
     target_link_options(${PROJECT_NAME} PRIVATE -Wl,--wrap=kafka_handle_create,--wrap=kafka_topic_new,--wrap=kafka_produce)
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/etc
-            ${CMAKE_BINARY_DIR}/etc
-    COMMENT "copy config file to build directory"
-)
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#             ${CMAKE_SOURCE_DIR}/etc
+#             ${CMAKE_BINARY_DIR}/etc
+#     COMMENT "copy config file to build directory"
+# )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT Program)
 

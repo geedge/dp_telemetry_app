@@ -3,7 +3,7 @@
         "table_id": 1,
         "table_name": "DATAPATH_TELEMETRY_JOB",
         "table_type": "plugin",
-        "valid_column": 9,
+        "valid_column": 10,
         "custom": {
             "key": 1,
             "key_type": "pointer"

@@ -104,6 +104,7 @@ void config_load()
 
     MESA_load_profile_int_def(config_path, "maat", "maat_log_level", &(g_conf->maat_log_level), LOG_LEVEL_FATAL);
     MESA_load_profile_int_def(config_path, "maat", "maat_input_mode", &(g_conf->maat_input_mode), 0);
+    MESA_load_profile_int_def(config_path, "maat", "deferred_load_on", &(g_conf->deferred_load_on), 0);
 
     MESA_load_profile_string_def(config_path, "maat", "table_schema", tmp_path, sizeof(tmp_path), "");
     paths_combine(g_conf->absolute_path, tmp_path, g_conf->table_schema, sizeof(g_conf->table_schema));

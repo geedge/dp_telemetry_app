@@ -95,3 +95,24 @@ static inline char * paths_combine(const char * restrict prog_absolute_path, con
 
     return resolve_path;
 }
+
+static inline void backspace_remove(const char * input, char * output)
+{
+    int i, j;
+
+    for (i = 0, j = 0; i < strlen(input) - 1; i++)
+    {
+        if (input[i] == '\\' && input[i + 1] == 'b')
+        {
+            i += 1;
+            output[j++] = ' ';
+        }
+        else
+        {
+            output[j++] = input[i];
+        }
+    }
+    output[j++] = input[i];
+
+    output[j] = '\0';
+}

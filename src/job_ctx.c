@@ -84,20 +84,22 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     unsigned int snaplen = 0;
     unsigned int with_packet_capture = 0;
     char device_group[512];
+    char traffic_link_id[1024];
     unsigned int is_valid = 0;
 
-    ret = sscanf(table_line, "%s\t%u\t%128[^\t]\t%u\t%u\t%u\t%u\t%s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
-                 &sampling, &snaplen, &with_packet_capture, device_group, &is_valid);
-    if (ret != 9)
+    dzlog_debug("telemetry add maat parse config rule:%s", table_line);
+    ret = sscanf(table_line, "%s\t%u\t%s\t%u\t%u\t%u\t%u\t%512s\t%1024s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
+                 &sampling, &snaplen, &with_packet_capture, device_group, traffic_link_id, &is_valid);
+    if (ret != 10)
     {
-        dzlog_warn("maat parse config failed:%s", table_line);
-        return;
+        dzlog_warn("maat parse config failed. Not enough fields:%s", table_line);
+        // return;
     }
 
     if (is_valid == 0)
     {
         dzlog_warn("rule is not valid:%s", table_line);
-        return;
+        // return;
     }
 
     ret = uuid_parse(uuid, telemetry_desc.uuid);
@@ -107,7 +109,8 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
         return;
     }
 
-    snprintf(job_desc->bpf_expr, sizeof(job_desc->bpf_expr), "%s", bpf_expr);
+    backspace_remove(bpf_expr, job_desc->bpf_expr);
+
     job_desc->pkt_cnt_max = pkt_cnt_max;
     job_desc->sampling = sampling;
     job_desc->snaplen = snaplen;
