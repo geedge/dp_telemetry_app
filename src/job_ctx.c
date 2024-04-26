@@ -114,6 +114,7 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     job_desc->pkt_cnt_max = pkt_cnt_max;
     job_desc->sampling = sampling;
     job_desc->snaplen = snaplen;
+    job_desc->measurement_type = DP_TRACE_MEASUREMENT_TYPE_TELEMETRY;
 
     int index = telemetry_unused_job_index_get();
     if (index < 0)

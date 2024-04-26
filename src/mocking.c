@@ -2,17 +2,7 @@
 #include "common.h"
 #include <mpack.h>
 
-rd_kafka_t * __wrap_kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd)
-{
-    return NULL;
-}
-
-rd_kafka_topic_t * __wrap_kafka_topic_new(rd_kafka_t * rk, const char * topic, rd_kafka_topic_conf_t * conf)
-{
-    return NULL;
-}
-
-int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
+int kafka_dump_to_log(rd_kafka_topic_t * rkt, const void * payload, size_t len)
 {
     struct measurements
     {
@@ -104,6 +94,5 @@ int __wrap_kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
         dzlog_debug("comments %.*s", packet.record[i].comments_len, packet.record[i].comments);
     }
 
-    free(payload);
     return 0;
 }

@@ -29,6 +29,7 @@ struct config
     char keep_alive_path[MR_SYMBOL_MAX];
 
     // kafka
+    unsigned int kafka_dump_to_log;
     char topic_name[MR_SYMBOL_MAX];
     char broker_list[1024];
     char sasl_username[MR_SYMBOL_MAX];
