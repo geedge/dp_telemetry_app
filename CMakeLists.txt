@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(dp_trace_telemetry)
 
-option(ENABLE_DEVELOP_MOCKING "enable develop mocking" TRUE)
+option(ENABLE_DEVELOP_MOCKING "enable develop mocking" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Version)

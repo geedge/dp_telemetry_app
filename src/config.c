@@ -93,6 +93,7 @@ void config_load()
         printf("SLED_IP environment variable does not exist.\n");
     }
 
+    MESA_load_profile_int_def(config_path, "kafka", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
     MESA_load_profile_string_def(config_path, "kafka", "borker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
                                  "");
     MESA_load_profile_string_def(config_path, "kafka", "topic_name", g_conf->topic_name, sizeof(g_conf->topic_name),
@@ -180,6 +181,8 @@ void dynamic_config_load()
         desc_i->pkt_cnt_max = pkt_cnt_max;
         desc_i->sampling = (sampling == 0) ? 1 : sampling;
         desc_i->snaplen = (snaplen == 0) ? UINT32_MAX : snaplen;
+
+        desc_i->measurement_type = DP_TRACE_MEASUREMENT_TYPE_TRACE;
     }
 
     dzlog_info("Loading data path trace configuration file is completed.");

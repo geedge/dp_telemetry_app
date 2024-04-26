@@ -6,6 +6,7 @@
 #include "trace_output.h"
 
 #include <getopt.h>
+#include <math.h>
 #include <pthread.h>
 #include <sched.h>
 #include <signal.h>
@@ -151,12 +152,9 @@ int main(int argc, char * argv[])
     signal_event_init();
 
     unsigned int nr_thread = CPU_COUNT(&conf->cpu_set_io);
-    if (nr_thread < DP_TRACE_RING_NUM)
-    {
-        dzlog_error("The number of cores must be greater than %u", DP_TRACE_RING_NUM);
-        return 0;
-    }
-    dzlog_info("Thread Count = %d", nr_thread);
+    unsigned int ring_num = DP_TRACE_RING_NUM;
+    dzlog_info("thread count = %u", nr_thread);
+    dzlog_info("ring num = %u", ring_num);
 
     monit_init(nr_thread);
 
