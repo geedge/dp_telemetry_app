@@ -46,7 +46,7 @@ set_property(TARGET libevent-static-pthreads PROPERTY INTERFACE_INCLUDE_DIRECTOR
 ##### marsio
 ExternalProject_Add(marsio PREFIX marsio
             GIT_REPOSITORY git@git.mesalab.cn:MESA_Platform/marsio.git
-            GIT_TAG dp_trace_telemetry
+            GIT_TAG dev-4.8
             CONFIGURE_COMMAND 
                 COMMAND mkdir -p build
                 COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/build ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..
