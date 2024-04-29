@@ -1,6 +1,7 @@
 #include "common.h"
 #include "config.h"
 #include "http_serv.h"
+#include "logger.h"
 #include "maat.h"
 #include "monit.h"
 #include "trace_output.h"
@@ -17,7 +18,6 @@
 static const char appsym[64] = "dp_trace_telemetry";
 
 struct mr_instance * mr_instance = NULL;
-unsigned int zlog_env_is_init = 0;
 
 static void signal_handler(evutil_socket_t fd, short what, void * arg)
 {
@@ -121,18 +121,7 @@ int main(int argc, char * argv[])
 
     const struct config * conf = global_config_get();
 
-    ret = dzlog_init(conf->zlog_config_path, "default_zlog_category");
-    if (ret != 0)
-    {
-        char * zlog_profile_error = getenv("ZLOG_PROFILE_ERROR");
-        printf("fail in dzlog_int.\n");
-        if (zlog_profile_error != NULL)
-        {
-            printf("The dzlog_init function error infomation is recorded in:%s\n", zlog_profile_error);
-        }
-        exit(EXIT_FAILURE);
-    }
-    zlog_env_is_init = 1;
+    logger_init();
 
     http_serv_init();
 

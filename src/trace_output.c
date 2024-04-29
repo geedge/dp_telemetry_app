@@ -3,6 +3,7 @@
 #include "config.h"
 #include "job_ctx.h"
 #include "kafka.h"
+#include "logger.h"
 #include "mocking.h"
 #include "monit.h"
 #include "pcapng.h"
@@ -121,6 +122,8 @@ void * dp_trace_process_thread(void * arg)
 
     marsio_thread_init(mr_instance);
 
+    zlog_category_t * kafak_dump_logger = kafka_dump_logger_get();
+
     unsigned int no_pkt_recv_cnt = 0;
     for (unsigned int qid_index = 0;; qid_index++)
     {
@@ -178,7 +181,7 @@ void * dp_trace_process_thread(void * arg)
 
                     if (conf->kafka_dump_to_log)
                     {
-                        kafka_dump_to_log(kafka_topic, (void *)data, size);
+                        kafka_dump_to_log(kafak_dump_logger, (void *)data, size);
                     }
 
                     int ret = kafka_produce(kafka_topic, (void *)data, size);
