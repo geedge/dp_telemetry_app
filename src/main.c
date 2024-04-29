@@ -134,6 +134,8 @@ int main(int argc, char * argv[])
     }
     zlog_env_is_init = 1;
 
+    http_serv_init();
+
     dp_trace_output_init();
 
     mr_instance = marsio_create();
@@ -164,8 +166,6 @@ int main(int argc, char * argv[])
     {
         pthread_create(&tmp_pid[i], NULL, dp_trace_process_thread, (void *)(uintptr_t)i);
     }
-
-    http_serv_init();
 
     for (int i = 0; i < nr_thread; i++)
     {
