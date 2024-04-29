@@ -18,13 +18,15 @@ static struct maat * dp_trace_maat_instance_create()
     maat_options_set_logger(opts, "log/maat.log", (enum log_level)conf->maat_log_level);
     maat_options_set_instance_name(opts, "dp_trace_telemetry");
 
-#if 0
+    dzlog_info("maat defere load:%u", conf->deferred_load_on);
     if (conf->deferred_load_on)
     {
-        maat_options_set_deferred_load_on(opts);
+        ret = maat_options_set_deferred_load_on(opts);
+        if (ret != 0)
+        {
+            dzlog_warn("maat_options_set_deferred_load_on function execution failed.");
+        }
     }
-    dzlog_info("maat defere load on:%u", conf->deferred_load_on);
-#endif
 
     maat_options_set_caller_thread_number(opts, 0);
     switch (conf->maat_input_mode)
