@@ -10,7 +10,6 @@
 #include <cmocka.h>
 
 struct mr_instance * mr_instance = NULL;
-unsigned int zlog_env_is_init = 0;
 
 int setup(void ** state)
 {

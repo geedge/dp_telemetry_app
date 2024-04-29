@@ -2,7 +2,7 @@
 #include "common.h"
 #include <mpack.h>
 
-int kafka_dump_to_log(rd_kafka_topic_t * rkt, const void * payload, size_t len)
+int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len)
 {
     struct measurements
     {
@@ -63,7 +63,7 @@ int kafka_dump_to_log(rd_kafka_topic_t * rkt, const void * payload, size_t len)
     {
         if (i >= 128)
         {
-            dzlog_debug("too many measurements...");
+            zlog_debug(logger, "too many measurements...");
             continue;
         }
         mpack_node_t measurement = mpack_node_array_at(measurements_val, i);
@@ -76,22 +76,47 @@ int kafka_dump_to_log(rd_kafka_topic_t * rkt, const void * payload, size_t len)
     }
 
     // print
-    dzlog_debug("microseconds %ld", packet.microseconds);
-    dzlog_debug("job_id %s", packet.job_id_str);
-    dzlog_debug("sled_ip %s", packet.sled_ip);
-    dzlog_debug("device_group %s", packet.device_group);
-    dzlog_debug("source_ip %s", packet.source_ip);
-    dzlog_debug("source_port %d", packet.source_port);
-    dzlog_debug("server_ip %s", packet.server_ip);
-    dzlog_debug("server_port %d", packet.server_port);
-    dzlog_debug("packet_length %d", packet.packet_length);
+    zlog_debug(logger, "microseconds %ld", packet.microseconds);
+    zlog_debug(logger, "job_id %s", packet.job_id_str);
+    zlog_debug(logger, "sled_ip %s", packet.sled_ip);
+    zlog_debug(logger, "device_group %s", packet.device_group);
+
+    if (strlen(packet.source_ip) == 0)
+    {
+        zlog_warn(logger, "source_ip is empty");
+    }
+    else
+    {
+        zlog_debug(logger, "source_ip %s", packet.source_ip);
+    }
+
+    zlog_debug(logger, "source_port %d", packet.source_port);
+
+    if (strlen(packet.server_ip) == 0)
+    {
+        zlog_warn(logger, "server_ip is empty");
+    }
+    else
+    {
+        zlog_debug(logger, "server_ip %s", packet.server_ip);
+    }
+
+    zlog_debug(logger, "server_port %d", packet.server_port);
+
+    zlog_debug(logger, "packet_length %d", packet.packet_length);
+
+    if (packet.measurements_num == 0)
+    {
+        zlog_debug(logger, "measurements num is zero");
+    }
+
     for (unsigned int i = 0; i < packet.measurements_num; i++)
     {
-        dzlog_debug("record %u:", i);
-        dzlog_debug("tv_sec %d", packet.record[i].tv_sec);
-        dzlog_debug("tv_nsec %d", packet.record[i].tv_nsec);
-        dzlog_debug("app %.*s", packet.record[i].app_len, packet.record[i].app);
-        dzlog_debug("comments %.*s", packet.record[i].comments_len, packet.record[i].comments);
+        zlog_debug(logger, "record %u:", i);
+        zlog_debug(logger, "tv_sec %d", packet.record[i].tv_sec);
+        zlog_debug(logger, "tv_nsec %d", packet.record[i].tv_nsec);
+        zlog_debug(logger, "app %.*s", packet.record[i].app_len, packet.record[i].app);
+        zlog_debug(logger, "comments %.*s", packet.record[i].comments_len, packet.record[i].comments);
     }
 
     return 0;
