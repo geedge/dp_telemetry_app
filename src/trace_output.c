@@ -699,14 +699,14 @@ int marsio_pkt_inner_ip_port_get(const marsio_buff_t * mbuf, struct pkt_inner_ip
     if (l4_layer_type_id == LAYER_TYPE_ID_TCP)
     {
         struct tcphdr * tcp_hdr = (struct tcphdr *)tcp_ptr;
-        info->src_port = tcp_hdr->th_sport;
-        info->dst_port = tcp_hdr->th_dport;
+        info->src_port = ntohs(tcp_hdr->th_sport);
+        info->dst_port = ntohs(tcp_hdr->th_dport);
     }
     else if (l4_layer_type_id == LAYER_TYPE_ID_UDP)
     {
         struct udphdr * udp_hdr = (struct udphdr *)udp_ptr;
-        info->src_port = udp_hdr->uh_sport;
-        info->dst_port = udp_hdr->uh_dport;
+        info->src_port = ntohs(udp_hdr->uh_sport);
+        info->dst_port = ntohs(udp_hdr->uh_dport);
     }
 
     return 0;
