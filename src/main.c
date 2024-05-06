@@ -125,8 +125,6 @@ int main(int argc, char * argv[])
 
     http_serv_init();
 
-    dp_trace_output_init();
-
     mr_instance = marsio_create();
 
     cpu_set_t cpu_set_io = conf->cpu_set_io;
@@ -136,18 +134,21 @@ int main(int argc, char * argv[])
     ret = marsio_init(mr_instance, appsym);
     DP_TRACE_VERIFY(ret >= 0, "marsio init failed.");
 
+    unsigned int nr_thread = CPU_COUNT(&conf->cpu_set_io);
+    monit_init(nr_thread);
+
+    dp_trace_ring_clear();
+    dp_trace_output_init();
+
     dynamic_config_load_and_apply();
 
     dp_trace_maat_init();
 
     signal_event_init();
 
-    unsigned int nr_thread = CPU_COUNT(&conf->cpu_set_io);
     unsigned int ring_num = DP_TRACE_RING_NUM;
     dzlog_info("thread count = %u", nr_thread);
     dzlog_info("ring num = %u", ring_num);
-
-    monit_init(nr_thread);
 
     pthread_t tmp_pid[nr_thread];
 

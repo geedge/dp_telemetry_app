@@ -156,7 +156,7 @@ void * dp_trace_process_thread(void * arg)
             }
 
             uint8_t role = job_id_role_get(index_to_job_id(i));
-            if (role == DP_TRACE_ROLE)
+            if (role == DP_TRACE_MEASUREMENT_TYPE_TRACE)
             {
                 for (unsigned int j = 0; j < nr_mbufs; j++)
                 {
@@ -165,7 +165,7 @@ void * dp_trace_process_thread(void * arg)
                 job_bitmap_t job_id = index_to_job_id(i);
                 cli_job_mbufs_write_process(tx_buff, nr_mbufs, job_id);
             }
-            else if (role == DP_TELEMETRY_ROLE)
+            else if (role == DP_TRACE_MEASUREMENT_TYPE_TELEMETRY)
             {
                 for (unsigned int j = 0; j < nr_mbufs; j++)
                 {
@@ -750,4 +750,25 @@ static void thread_id_to_ring_id_calculate(unsigned int nr_thread, unsigned int 
         qids[i] = (++prefix_index);
         (*nr_qids)++;
     }
+}
+
+void dp_trace_ring_clear()
+{
+    unsigned int ring_clear_cnt = 0;
+    unsigned int nr_ring = DP_TRACE_RING_NUM;
+    marsio_buff_t * rx_buff[1024];
+
+    saving_stat = record_saving_stat_point_get(0);
+
+    for (unsigned int i = 0; i < nr_ring; i++)
+    {
+        unsigned int nr_recv = marsio_dp_trace_mbuf_recv_burst(mr_instance, i, rx_buff, TELEMETRY_DIM(rx_buff));
+        saving_stat->recv_success += nr_recv;
+        saving_stat->init_old_packet_drop += nr_recv;
+
+        marsio_dp_trace_mbuf_free(mr_instance, rx_buff, nr_recv);
+        ring_clear_cnt += nr_recv;
+    }
+
+    dzlog_info("The program starts and clears %u mbufs", ring_clear_cnt);
 }

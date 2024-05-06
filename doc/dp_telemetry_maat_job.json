@@ -1,9 +1,0 @@
-{
-    "job_id": "499a49aa-b4b9-4e8e-a66c-80d4cd40257b",
-    "job_name": "test_2",
-    "bpf_expr": "ether host 00:15:5d:b8:10:a6",
-    "pkt_cnt_max": 100,
-    "timeout": 120,
-    "sampling": 2,
-    "snaplen": 100
-}
