@@ -191,7 +191,7 @@ void dynamic_config_load()
 void dynamic_config_load_and_apply()
 {
     dynamic_config_load();
-    job_rule_apply(g_conf->desc, g_conf->nr_desc, DP_TRACE_ROLE);
+    job_rule_apply(g_conf->desc, g_conf->nr_desc);
 }
 
 //////////////////////// helper function /////////////////////////

@@ -17,12 +17,15 @@ static struct dp_trace_job_occupy dp_trace_job_occupy[DP_TRACE_JOB_NUM_MAX] = {}
 static struct dp_trace_telemetry_desc telemetry_descs[DP_TRACE_JOB_NUM_MAX] = {};
 
 static int telemetry_unused_job_index_get();
+static void job_desc_dump(struct dp_trace_job_desc * desc);
 
-void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8_t role)
+void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
 {
     int ret = 0;
     for (unsigned int i = 0; i < nr_desc; i++)
     {
+        job_desc_dump(&desc[i]);
+
         uint8_t rule_index = desc[i].rule_index;
         job_bitmap_t cur_job_id = index_to_job_id(rule_index);
         uint8_t cur_job_uesd = is_job_id_used(cur_job_id);
@@ -38,7 +41,7 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8
             else
             {
                 dp_trace_job_occupy[rule_index].uesd = 1;
-                dp_trace_job_occupy[rule_index].role = role;
+                dp_trace_job_occupy[rule_index].role = desc[i].measurement_type;
                 dzlog_info("add rule %u successfully. bpf_expr is: %s", rule_index, desc[i].bpf_expr);
             }
             continue;
@@ -58,7 +61,7 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc, uint8
                 dp_trace_job_occupy[rule_index].uesd = 0;
                 dp_trace_job_occupy[rule_index].role = DP_TRACE_NO_ROLE;
 
-                if (tmp_role == DP_TRACE_ROLE)
+                if (tmp_role == DP_TRACE_MEASUREMENT_TYPE_TRACE)
                 {
                     dp_trace_pcapng_merger(cur_job_id);
                 }
@@ -128,7 +131,7 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
 
     memcpy(&telemetry_descs[index], &telemetry_desc, sizeof(struct dp_trace_telemetry_desc));
 
-    job_rule_apply(&telemetry_descs[index].job_desc, 1, DP_TELEMETRY_ROLE);
+    job_rule_apply(&telemetry_descs[index].job_desc, 1);
 
     *ad = &telemetry_descs[index];
 }
@@ -138,7 +141,7 @@ void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp)
     struct dp_trace_telemetry_desc * telemetry_desc = *ad;
     struct dp_trace_job_desc * job_desc = &telemetry_desc->job_desc;
     job_desc->enable = false;
-    job_rule_apply(job_desc, 1, DP_TELEMETRY_ROLE);
+    job_rule_apply(job_desc, 1);
     return;
 }
 
@@ -193,4 +196,16 @@ static int telemetry_unused_job_index_get()
     }
 
     return ret;
+}
+
+static void job_desc_dump(struct dp_trace_job_desc * desc)
+{
+    dzlog_info("dp trace job desc dump");
+    dzlog_info("enable:%u", desc->enable);
+    dzlog_info("measurement_type:%u", desc->measurement_type);
+    dzlog_info("rule_index:%u", desc->rule_index);
+    dzlog_info("bpf_expr:%s", desc->bpf_expr);
+    dzlog_info("pkt_cnt_max:%u", desc->pkt_cnt_max);
+    dzlog_info("sampling:%u", desc->sampling);
+    dzlog_info("snaplen:%u", desc->snaplen);
 }

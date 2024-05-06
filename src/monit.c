@@ -33,6 +33,8 @@ static void monit_dump()
     for (unsigned int i = 0; i < monit->nr_stat; i++)
     {
         total_stat.recv_success += monit->savint_stats[i].recv_success;
+        total_stat.init_old_packet_drop += monit->savint_stats[i].init_old_packet_drop;
+
         total_stat.save_failed_at_job_deleted += monit->savint_stats[i].save_failed_at_job_deleted;
         total_stat.save_failed_at_mutex_lock += monit->savint_stats[i].save_failed_at_mutex_lock;
 
@@ -50,6 +52,8 @@ static void monit_dump()
 
     struct cJSON * json_root = cJSON_CreateObject();
     cJSON_AddNumberToObject(json_root, "recv_success", total_stat.recv_success);
+    cJSON_AddNumberToObject(json_root, "init_old_packet_drop", total_stat.init_old_packet_drop);
+
     cJSON_AddNumberToObject(json_root, "save_failed_at_job_deleted", total_stat.save_failed_at_job_deleted);
     cJSON_AddNumberToObject(json_root, "save_failed_at_mutex_lock", total_stat.save_failed_at_mutex_lock);
 
