@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #ifndef MR_SYMBOL_MAX
-#define MR_SYMBOL_MAX 64
+#define MR_SYMBOL_MAX 128
 #endif
 
 #ifndef likely

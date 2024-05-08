@@ -6,6 +6,7 @@ set(DP_TRACE_TELEMETRY_SOURCES
     ${CMAKE_SOURCE_DIR}/src/job_ctx.c 
     ${CMAKE_SOURCE_DIR}/src/trace_output.c
     ${CMAKE_SOURCE_DIR}/src/kafka.c
+    ${CMAKE_SOURCE_DIR}/src/maat.c
     ${CMAKE_SOURCE_DIR}/src/mocking.c
     ${CMAKE_SOURCE_DIR}/src/monit.c
     ${CMAKE_SOURCE_DIR}/src/http_serv.c

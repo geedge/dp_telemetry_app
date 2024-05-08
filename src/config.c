@@ -77,7 +77,7 @@ void config_load()
                                  "/var/run/mrzcpd/mrmonit.app.dp_trace_telemetry.saving");
 
     MESA_load_profile_string_def(config_path, "global", "device_group", g_conf->device_group,
-                                 sizeof(g_conf->device_group), "unknow");
+                                 sizeof(g_conf->device_group), "");
 
     MESA_load_profile_string_def(config_path, "http_server", "listen_addr", g_conf->str_listen_addr,
                                  sizeof(g_conf->str_listen_addr), "127.0.0.1");
