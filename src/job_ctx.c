@@ -1,5 +1,7 @@
 #include "job_ctx.h"
 #include "common.h"
+#include "config.h"
+#include "maat.h"
 #include "trace_output.h"
 
 #include <MESA/maat.h>
@@ -75,60 +77,25 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
 void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line, void ** ad,
                           long argl, void * argp)
 {
-    int ret = 0;
     struct dp_trace_telemetry_desc telemetry_desc = {};
     struct dp_trace_job_desc * job_desc = &telemetry_desc.job_desc;
 
-    char uuid[40] = {};
-    unsigned int pkt_cnt_max = 0;
-    char bpf_expr[MR_BPF_EXPRESSION_MAX];
-    unsigned int timeout = 0;
-    unsigned int sampling = 0;
-    unsigned int snaplen = 0;
-    unsigned int with_packet_capture = 0;
-    char device_group[512];
-    char traffic_link_id[1024];
-    unsigned int is_valid = 0;
-
-    dzlog_debug("telemetry add maat parse config rule:%s", table_line);
-    ret = sscanf(table_line, "%s\t%u\t%s\t%u\t%u\t%u\t%u\t%512s\t%1024s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
-                 &sampling, &snaplen, &with_packet_capture, device_group, traffic_link_id, &is_valid);
-    if (ret != 10)
+    bool valid_rule = maat_rule_parse(table_line, &telemetry_desc);
+    if (valid_rule == false)
     {
-        dzlog_warn("maat parse config failed. Not enough fields:%s", table_line);
-        // return;
-    }
-
-    if (is_valid == 0)
-    {
-        dzlog_warn("rule is not valid:%s", table_line);
-        // return;
-    }
-
-    ret = uuid_parse(uuid, telemetry_desc.uuid);
-    if (ret != 0)
-    {
-        dzlog_error("uuid parsing failed: %s", uuid);
+        dzlog_warn("parse maat rule failed.");
         return;
     }
-
-    backspace_remove(bpf_expr, job_desc->bpf_expr);
-
-    job_desc->pkt_cnt_max = pkt_cnt_max;
-    job_desc->sampling = sampling;
-    job_desc->snaplen = snaplen;
-    job_desc->measurement_type = DP_TRACE_MEASUREMENT_TYPE_TELEMETRY;
 
     int index = telemetry_unused_job_index_get();
     if (index < 0)
     {
-        dzlog_warn("no enough job for bpf_expr:", job_desc->bpf_expr);
+        dzlog_warn("no enough job for current rule:%s", table_line);
         return;
     }
 
     job_desc->rule_index = index;
     job_desc->enable = true;
-
     memcpy(&telemetry_descs[index], &telemetry_desc, sizeof(struct dp_trace_telemetry_desc));
 
     job_rule_apply(&telemetry_descs[index].job_desc, 1);
@@ -201,11 +168,54 @@ static int telemetry_unused_job_index_get()
 static void job_desc_dump(struct dp_trace_job_desc * desc)
 {
     dzlog_info("dp trace job desc dump");
+    dzlog_info("rule_index:%u", desc->rule_index);
     dzlog_info("enable:%u", desc->enable);
     dzlog_info("measurement_type:%u", desc->measurement_type);
-    dzlog_info("rule_index:%u", desc->rule_index);
     dzlog_info("bpf_expr:%s", desc->bpf_expr);
     dzlog_info("pkt_cnt_max:%u", desc->pkt_cnt_max);
     dzlog_info("sampling:%u", desc->sampling);
     dzlog_info("snaplen:%u", desc->snaplen);
+
+    dzlog_info("traffic_link_id_cnt:%u", desc->traffic_link_id_cnt);
+    char traffic_link_id_str[512];
+    int len = snprintf(traffic_link_id_str, sizeof(traffic_link_id_str), "%s", "[");
+    for (unsigned int i = 0; i < desc->traffic_link_id_cnt; i++)
+    {
+        char * normal_format = "%u,";
+        char * last_format = "%u";
+
+        char * fromat = normal_format;
+        if (i == desc->traffic_link_id_cnt - 1)
+        {
+            fromat = last_format;
+        }
+        len +=
+            snprintf(traffic_link_id_str + len, sizeof(traffic_link_id_str) - len, fromat, desc->traffic_link_ids[i]);
+    }
+    len += snprintf(traffic_link_id_str + len, sizeof(traffic_link_id_str) - len, "%s", "]");
+    dzlog_info("traffic_link_ids:%s", traffic_link_id_str);
 }
+
+#if 0
+int traffic_link_id_extract(char * traffic_str, uint16_t traffic_link_ids[], unsigned int size)
+{
+    unsigned int traffic_link_id_cnt = 0;
+    const char * delim = "[], ";
+    char * token = strtok(traffic_str, delim);
+
+    for (unsigned int i = 0; i < size; i++)
+    {
+        if (token != NULL)
+        {
+            char * endptr;
+            uint16_t id = (uint16_t)strtol(token, &endptr, 10);
+            if (endptr != token)
+            {
+                traffic_link_ids[traffic_link_id_cnt++] = id;
+            }
+        }
+        token = strtok(NULL, delim);
+    }
+    return traffic_link_id_cnt;
+}
+#endif
