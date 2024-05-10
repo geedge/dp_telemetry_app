@@ -535,8 +535,11 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, "destination_port");
     mpack_write_i32(&writer, pkt_info.dst_port);
 
+    unsigned int snaplen = trace_buff_info.snaplen;
+    snaplen = (snaplen < marsio_buff_datalen(mr_mbuf)) ? snaplen : marsio_buff_datalen(mr_mbuf);
+
     mpack_write_cstr(&writer, "packet");
-    mpack_write_bin(&writer, marsio_buff_mtod(mr_mbuf), marsio_buff_datalen(mr_mbuf));
+    mpack_write_bin(&writer, marsio_buff_mtod(mr_mbuf), snaplen);
 
     mpack_write_cstr(&writer, "packet_length");
     mpack_write_i32(&writer, marsio_buff_datalen(mr_mbuf));
