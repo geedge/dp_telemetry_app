@@ -567,6 +567,11 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
             mpack_write_cstr(&writer, "comments");
             mpack_write_str(&writer, comment, comment_len);
 
+            if (comment_len > 1024)
+            {
+                dzlog_warn("The current comment is too long and may be abnormal data:%.*s", comment_len, comment);
+            }
+
             mpack_finish_map(&writer);
         }
 
