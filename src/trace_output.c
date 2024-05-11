@@ -45,7 +45,6 @@ int dp_trace_classification(struct mr_instance * instance, marsio_buff_t * mbufs
                             int nr_jobs_mbufs[DP_TRACE_JOB_NUM_MAX]);
 static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** data, size_t * size, job_bitmap_t job_id);
 static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, unsigned int size);
-int marsio_pkt_inner_ip_port_get(const marsio_buff_t * mbuf, struct pkt_inner_ip_port * info);
 static void thread_id_to_ring_id_calculate(unsigned int nr_thread, unsigned int nr_ring, unsigned int thread_id,
                                            unsigned int qids[], unsigned int * nr_qids);
 
@@ -493,9 +492,6 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     gettimeofday(&tv, NULL);
     uint64_t microseconds = (uint64_t)(tv.tv_sec) * 1000000 + tv.tv_usec;
 
-    struct pkt_inner_ip_port pkt_info;
-    marsio_pkt_inner_ip_port_get(mr_mbuf, &pkt_info);
-
     mpack_writer_t writer;
     mpack_writer_init_growable(&writer, data, size);
     mpack_build_map(&writer);
@@ -523,17 +519,20 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, "device_group");
     mpack_write_cstr(&writer, global_config_get()->device_group);
 
+    mpack_write_cstr(&writer, "traffic_link_id");
+    mpack_write_i32(&writer, trace_buff_info.traffic_link_id);
+
     mpack_write_cstr(&writer, "source_ip");
-    mpack_write_cstr(&writer, pkt_info.src_addr_str);
+    mpack_write_cstr(&writer, trace_buff_info.inner_src_addr_str);
 
     mpack_write_cstr(&writer, "source_port");
-    mpack_write_i32(&writer, pkt_info.src_port);
+    mpack_write_i32(&writer, trace_buff_info.inner_src_port);
 
     mpack_write_cstr(&writer, "destination_ip");
-    mpack_write_cstr(&writer, pkt_info.dst_addr_str);
+    mpack_write_cstr(&writer, trace_buff_info.inner_dst_addr_str);
 
     mpack_write_cstr(&writer, "destination_port");
-    mpack_write_i32(&writer, pkt_info.dst_port);
+    mpack_write_i32(&writer, trace_buff_info.inner_dst_port);
 
     unsigned int snaplen = trace_buff_info.snaplen;
     snaplen = (snaplen < marsio_buff_datalen(mr_mbuf)) ? snaplen : marsio_buff_datalen(mr_mbuf);
@@ -593,7 +592,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
 
 static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, unsigned int size)
 {
-    struct dp_trace_buffer_telemetry trace_buff_info;
+    struct dp_trace_buffer_telemetry trace_buff_info = {};
     marsio_dp_trace_buffer_info_get(mr_mbuf, &trace_buff_info);
     unsigned int position = 0;
 
@@ -649,73 +648,6 @@ static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, u
 #else
     *data = '\0';
 #endif
-
-    return 0;
-}
-
-int marsio_pkt_inner_ip_port_get(const marsio_buff_t * mbuf, struct pkt_inner_ip_port * info)
-{
-    memset(info, 0, sizeof(struct pkt_inner_ip_port));
-
-    // get inner ip
-    void * ipv4_ptr = NULL;
-    void * ipv6_ptr = NULL;
-    uint16_t l3_layer_type_id = 0;
-
-    ipv4_ptr = marsio_pkt_jump_to_innermost_layer(mbuf, LAYER_TYPE_ID_IPV4);
-    ipv6_ptr = marsio_pkt_jump_to_innermost_layer(mbuf, LAYER_TYPE_ID_IPV6);
-
-    if (ipv4_ptr > ipv6_ptr)
-    {
-        l3_layer_type_id = LAYER_TYPE_ID_IPV4;
-    }
-    else if (ipv6_ptr > ipv4_ptr)
-    {
-        l3_layer_type_id = LAYER_TYPE_ID_IPV6;
-    }
-
-    if (l3_layer_type_id == LAYER_TYPE_ID_IPV4)
-    {
-        struct iphdr * ipv4_hdr = (struct iphdr *)ipv4_ptr;
-        inet_ntop(AF_INET, &ipv4_hdr->saddr, info->src_addr_str, sizeof(info->src_addr_str));
-        inet_ntop(AF_INET, &ipv4_hdr->daddr, info->dst_addr_str, sizeof(info->dst_addr_str));
-    }
-    else if (l3_layer_type_id == LAYER_TYPE_ID_IPV6)
-    {
-        struct ip6_hdr * ipv6_hdr = (struct ip6_hdr *)ipv6_ptr;
-        inet_ntop(AF_INET6, &ipv6_hdr->ip6_src, info->src_addr_str, sizeof(info->src_addr_str));
-        inet_ntop(AF_INET6, &ipv6_hdr->ip6_dst, info->dst_addr_str, sizeof(info->dst_addr_str));
-    }
-
-    // get inner tcp or udp port
-    void * tcp_ptr = NULL;
-    void * udp_ptr = NULL;
-    uint16_t l4_layer_type_id = 0;
-
-    tcp_ptr = marsio_pkt_jump_to_innermost_layer(mbuf, LAYER_TYPE_ID_TCP);
-    udp_ptr = marsio_pkt_jump_to_innermost_layer(mbuf, LAYER_TYPE_ID_UDP);
-
-    if (tcp_ptr > udp_ptr)
-    {
-        l4_layer_type_id = LAYER_TYPE_ID_TCP;
-    }
-    else if (udp_ptr > tcp_ptr)
-    {
-        l4_layer_type_id = LAYER_TYPE_ID_UDP;
-    }
-
-    if (l4_layer_type_id == LAYER_TYPE_ID_TCP)
-    {
-        struct tcphdr * tcp_hdr = (struct tcphdr *)tcp_ptr;
-        info->src_port = ntohs(tcp_hdr->th_sport);
-        info->dst_port = ntohs(tcp_hdr->th_dport);
-    }
-    else if (l4_layer_type_id == LAYER_TYPE_ID_UDP)
-    {
-        struct udphdr * udp_hdr = (struct udphdr *)udp_ptr;
-        info->src_port = ntohs(udp_hdr->uh_sport);
-        info->dst_port = ntohs(udp_hdr->uh_dport);
-    }
 
     return 0;
 }

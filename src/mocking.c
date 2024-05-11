@@ -20,6 +20,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
         char job_id_str[MR_SYMBOL_MAX];
         char sled_ip[INET6_ADDRSTRLEN];
         char device_group[MR_SYMBOL_MAX];
+        int32_t traffic_link_id;
         char source_ip[INET6_ADDRSTRLEN];
         int32_t source_port;
         char server_ip[INET6_ADDRSTRLEN];
@@ -44,6 +45,8 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
     mpack_node_copy_cstr(mpack_node_map_cstr(root, "sled_ip"), packet.sled_ip, sizeof(packet.sled_ip));
 
     mpack_node_copy_cstr(mpack_node_map_cstr(root, "device_group"), packet.device_group, sizeof(packet.device_group));
+
+    packet.traffic_link_id = mpack_node_i32(mpack_node_map_cstr(root, "traffic_link_id"));
 
     mpack_node_copy_cstr(mpack_node_map_cstr(root, "source_ip"), packet.source_ip, sizeof(packet.source_ip));
 
@@ -80,6 +83,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
     zlog_debug(logger, "job_id %s", packet.job_id_str);
     zlog_debug(logger, "sled_ip %s", packet.sled_ip);
     zlog_debug(logger, "device_group %s", packet.device_group);
+    zlog_debug(logger, "traffic_link_id %d", packet.traffic_link_id);
 
     if (strlen(packet.source_ip) == 0)
     {
