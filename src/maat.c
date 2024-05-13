@@ -104,7 +104,7 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
     unsigned int sampling = 0;
     unsigned int snaplen = 0;
     unsigned int with_packet_capture = 0;
-    char device_group[1024] = "";
+    char device_group[4096] = "";
     char traffic_link_id[128] = "";
     unsigned int is_valid = 1;
 
@@ -113,7 +113,7 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
     int ret = 0;
 
     dzlog_info("telemetry add maat parse config rule:%s", table_line);
-    ret = sscanf(table_line, "%s\t%u\t%127s\t%u\t%u\t%u\t%u\t%1023s\t%127s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
+    ret = sscanf(table_line, "%s\t%u\t%127s\t%u\t%u\t%u\t%u\t%4095s\t%127s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
                  &sampling, &snaplen, &with_packet_capture, device_group, traffic_link_id, &is_valid);
     if (ret != 10)
     {
@@ -122,11 +122,18 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
     }
 
     bool device_group_match = false;
+    if (strcasecmp(device_group, "{}") == 0)
+    {
+        dzlog_info("When device_group is empty, all devices are matched");
+        device_group_match = true;
+        goto device_group_match_end;
+    }
+
     device_group_json = cJSON_Parse(device_group);
     if (device_group_json == NULL)
     {
         dzlog_error("parse to json failed:%s", device_group);
-        goto end;
+        goto device_group_match_end;
     }
 
     cJSON * tag_sets_item = cJSON_GetObjectItem(device_group_json, "tag_sets");
