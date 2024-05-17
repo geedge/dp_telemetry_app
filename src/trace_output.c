@@ -17,6 +17,7 @@
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <pcap.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -47,6 +48,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
 static int dp_trace_record_decode_to_str(marsio_buff_t * mr_mbuf, char * data, unsigned int size);
 static void thread_id_to_ring_id_calculate(unsigned int nr_thread, unsigned int nr_ring, unsigned int thread_id,
                                            unsigned int qids[], unsigned int * nr_qids);
+void arp_pkt_no_ip_verify(marsio_buff_t * mr_mbuf);
 
 struct dp_trace_output
 {
@@ -498,6 +500,12 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     marsio_dp_trace_buffer_info_get(mr_mbuf, &trace_buff_info);
 
     unsigned int position = 0;
+    const struct config * conf = global_config_get();
+
+    if (conf->arp_pkt_has_ip_test == 1)
+    {
+        arp_pkt_no_ip_verify(mr_mbuf);
+    }
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -518,9 +526,9 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, uuid_str);
 
     mpack_write_cstr(&writer, "sled_ip");
-    if (global_config_get()->sled_ip != NULL)
+    if (conf->sled_ip != NULL)
     {
-        mpack_write_cstr(&writer, global_config_get()->sled_ip);
+        mpack_write_cstr(&writer, conf->sled_ip);
     }
     else
     {
@@ -528,7 +536,7 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     }
 
     mpack_write_cstr(&writer, "device_group");
-    mpack_write_cstr(&writer, global_config_get()->device_group);
+    mpack_write_cstr(&writer, conf->device_group);
 
     mpack_write_cstr(&writer, "traffic_link_id");
     mpack_write_i32(&writer, trace_buff_info.traffic_link_id);
@@ -725,4 +733,45 @@ void dp_trace_ring_clear()
     }
 
     dzlog_info("The program starts and clears %u mbufs", ring_clear_cnt);
+}
+
+// During the development process, arp packets showed IP on the UI. This function is specially added to locate the
+// problem location
+void arp_pkt_no_ip_verify(marsio_buff_t * mr_mbuf)
+{
+    pcap_t * pcap_handle = NULL;
+    struct bpf_program fp = {};
+    pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
+    if (pcap_compile(pcap_handle, &fp, "arp", 0, PCAP_NETMASK_UNKNOWN) < 0)
+    {
+        dzlog_warn("fail to comple arp bpf expr");
+        return;
+    }
+
+    unsigned int packet_length = marsio_buff_buflen(mr_mbuf);
+#define BPF_CAPTURE_PACKAGE_LENGTH 256
+    unsigned char tmp_buf[BPF_CAPTURE_PACKAGE_LENGTH];
+    unsigned int need_pkt_len = BPF_CAPTURE_PACKAGE_LENGTH < packet_length ? BPF_CAPTURE_PACKAGE_LENGTH : packet_length;
+
+    struct pcap_pkthdr header = {.caplen = need_pkt_len, .len = packet_length};
+    const unsigned char * pkt = marsio_buff_mtod(mr_mbuf);
+
+    if ((pcap_offline_filter(&fp, &header, pkt) != 0))
+    {
+        // arp packet
+        struct dp_trace_buffer_telemetry trace_buff_info;
+        marsio_dp_trace_buffer_info_get(mr_mbuf, &trace_buff_info);
+
+        if (strlen(trace_buff_info.inner_src_addr_str) != 0)
+        {
+            dzlog_error("arp pkt has inner src ip:", trace_buff_info.inner_src_addr_str);
+        }
+        if (strlen(trace_buff_info.inner_dst_addr_str) != 0)
+        {
+            dzlog_error("arp pkt has inner dst ip:", trace_buff_info.inner_dst_addr_str);
+        }
+    }
+
+    pcap_freecode(&fp);
+    pcap_close(pcap_handle);
 }

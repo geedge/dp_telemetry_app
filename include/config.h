@@ -18,7 +18,6 @@ struct config
     char monit_file_path[PATH_MAX];
 
     cpu_set_t cpu_set_io;
-    unsigned int send_ctrlbuf;
 
     // device Information
     char * sled_ip;
@@ -31,7 +30,6 @@ struct config
     char keep_alive_path[MR_SYMBOL_MAX];
 
     // kafka
-    unsigned int kafka_dump_to_log;
     char topic_name[MR_SYMBOL_MAX];
     char broker_list[1024];
     char sasl_username[MR_SYMBOL_MAX];
@@ -55,6 +53,11 @@ struct config
 
     unsigned int nr_desc;
     struct dp_trace_job_desc desc[DP_TRACE_JOB_NUM_MAX];
+
+    // debug
+    unsigned int send_ctrlbuf;
+    unsigned int kafka_dump_to_log;
+    unsigned int arp_pkt_has_ip_test;
 };
 
 const struct config * config_create(const char * config_path, const char * dy_config_path);

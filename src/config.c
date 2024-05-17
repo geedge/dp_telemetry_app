@@ -76,8 +76,6 @@ void config_load()
                                  sizeof(g_conf->monit_file_path),
                                  "/var/run/mrzcpd/mrmonit.app.dp_trace_telemetry.saving");
 
-    MESA_load_profile_uint_def(config_path, "global", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
-
     MESA_load_profile_string_def(config_path, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "");
     MESA_load_profile_string_def(config_path, "global", "data_center", g_conf->data_center, sizeof(g_conf->data_center),
@@ -97,7 +95,6 @@ void config_load()
         printf("SLED_IP environment variable does not exist.\n");
     }
 
-    MESA_load_profile_int_def(config_path, "kafka", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
     MESA_load_profile_string_def(config_path, "kafka", "borker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
                                  "");
     MESA_load_profile_string_def(config_path, "kafka", "topic_name", g_conf->topic_name, sizeof(g_conf->topic_name),
@@ -188,6 +185,11 @@ void dynamic_config_load()
 
         desc_i->measurement_type = DP_TRACE_MEASUREMENT_TYPE_TRACE;
     }
+
+    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
+    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
+    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "arp_pkt_has_ip_test", &(g_conf->arp_pkt_has_ip_test),
+                               0);
 
     dzlog_info("Loading data path trace configuration file is completed.");
 }
