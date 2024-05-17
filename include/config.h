@@ -23,6 +23,7 @@ struct config
     // device Information
     char * sled_ip;
     char device_group[MR_SYMBOL_MAX];
+    char data_center[MR_SYMBOL_MAX];
 
     // server
     char str_listen_addr[INET6_ADDRSTRLEN];
