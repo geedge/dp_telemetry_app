@@ -107,10 +107,13 @@ int kafka_produce(rd_kafka_topic_t * rkt, void * payload, size_t len)
     // Automatically release payload
     // Even if the function fails to execute and returns -1, the payload will be released.
     int ret = rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_FREE, (void *)payload, len, NULL, 0, NULL);
+#if 0
+// Avoid having too many same logs
     if (ret != 0)
     {
         rd_kafka_resp_err_t err = rd_kafka_last_error();
         dzlog_error("rd_kafka_topic_new failed:%s", rd_kafka_err2str(err));
     }
+#endif
     return ret;
 }

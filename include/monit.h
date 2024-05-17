@@ -5,6 +5,7 @@ struct record_saving_stat
 {
     uint64_t recv_success;
     uint64_t init_old_packet_drop;
+    uint64_t ctrlbuf_drop;
 
     uint64_t save_failed_at_job_deleted;
     uint64_t save_failed_at_mutex_lock;

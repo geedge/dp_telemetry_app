@@ -18,6 +18,7 @@ struct config
     char monit_file_path[PATH_MAX];
 
     cpu_set_t cpu_set_io;
+    unsigned int send_ctrlbuf;
 
     // device Information
     char * sled_ip;
