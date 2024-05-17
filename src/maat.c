@@ -219,7 +219,7 @@ device_group_or_date_center_match_end:
         goto end;
     }
 
-    backspace_remove(bpf_expr, job_desc->bpf_expr);
+    bpf_str_unescape_for_cm(bpf_expr, job_desc->bpf_expr);
 
     traffic_json = cJSON_Parse(traffic_link_id);
     if (traffic_json == NULL || !cJSON_IsArray(traffic_json))
