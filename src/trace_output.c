@@ -136,7 +136,7 @@ void * dp_trace_process_thread(void * arg)
             if (no_pkt_recv_cnt == nr_qids)
             {
                 no_pkt_recv_cnt = 0;
-                sleep(1);
+                usleep(30);
             }
             continue;
         }
