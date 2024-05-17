@@ -94,16 +94,30 @@ static inline char * paths_combine(const char * restrict prog_absolute_path, con
     return resolve_path;
 }
 
-static inline void backspace_remove(const char * input, char * output)
+// Special character conversion adapted to geedge CM.
+// unescape only for bpf.
+// Full string escaping is confusing and difficult to read.
+// pcap-filter support backslash (\). but no '\b' in bpf.
+static inline void bpf_str_unescape_for_cm(const char * input, char * output)
 {
     int i, j;
 
     for (i = 0, j = 0; i < strlen(input) - 1; i++)
     {
-        if (input[i] == '\\' && input[i + 1] == 'b')
+        if (input[i] == '\\' && input[i + 1] == '\\')
+        {
+            i += 1;
+            output[j++] = '\\';
+        }
+        else if (input[i] == '\\' && input[i + 1] == 'b')
         {
             i += 1;
             output[j++] = ' ';
+        }
+        else if (input[i] == '\\' && input[i + 1] == '&')
+        {
+            i += 1;
+            output[j++] = '&';
         }
         else
         {
