@@ -211,9 +211,20 @@ int dp_trace_classification(struct mr_instance * instance, marsio_buff_t * mbufs
                             int nr_jobs_mbufs[DP_TRACE_JOB_NUM_MAX])
 {
     memset((void *)nr_jobs_mbufs, 0, DP_TRACE_JOB_NUM_MAX * sizeof(int));
+    const struct config * conf = global_config_get();
 
     for (unsigned int i = 0; i < nr_mbufs; i++)
     {
+        if (marsio_buff_is_ctrlbuf(mbufs[i]) == 1)
+        {
+            if (conf->send_ctrlbuf == 0)
+            {
+                marsio_dp_trace_mbuf_free(instance, &mbufs[i], 1);
+                saving_stat->ctrlbuf_drop++;
+                continue;
+            }
+        }
+
         struct dp_trace_buffer_telemetry info;
         marsio_dp_trace_buffer_info_get((struct rte_mbuf *)mbufs[i], &info);
 
@@ -252,7 +263,7 @@ void cli_job_mbufs_write_process(marsio_buff_t * mbufs[], int nr_mbufs, job_bitm
 
     if (dp_trace_file_mutex_lock(job_id) < 0)
     {
-        saving_stat->save_failed_at_mutex_lock;
+        saving_stat->save_failed_at_mutex_lock += nr_mbufs;
         goto end;
     }
 
@@ -702,12 +713,15 @@ void dp_trace_ring_clear()
 
     for (unsigned int i = 0; i < nr_ring; i++)
     {
-        unsigned int nr_recv = marsio_dp_trace_mbuf_recv_burst(mr_instance, i, rx_buff, TELEMETRY_DIM(rx_buff));
-        saving_stat->recv_success += nr_recv;
-        saving_stat->init_old_packet_drop += nr_recv;
-
-        marsio_dp_trace_mbuf_free(mr_instance, rx_buff, nr_recv);
-        ring_clear_cnt += nr_recv;
+        unsigned int nr_recv = 0;
+        do
+        {
+            nr_recv = marsio_dp_trace_mbuf_recv_burst(mr_instance, i, rx_buff, TELEMETRY_DIM(rx_buff));
+            saving_stat->recv_success += nr_recv;
+            saving_stat->init_old_packet_drop += nr_recv;
+            marsio_dp_trace_mbuf_free(mr_instance, rx_buff, nr_recv);
+            ring_clear_cnt += nr_recv;
+        } while (nr_recv != 0);
     }
 
     dzlog_info("The program starts and clears %u mbufs", ring_clear_cnt);

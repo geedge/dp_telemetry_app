@@ -76,6 +76,8 @@ void config_load()
                                  sizeof(g_conf->monit_file_path),
                                  "/var/run/mrzcpd/mrmonit.app.dp_trace_telemetry.saving");
 
+    MESA_load_profile_uint_def(config_path, "global", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
+
     MESA_load_profile_string_def(config_path, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "");
 
