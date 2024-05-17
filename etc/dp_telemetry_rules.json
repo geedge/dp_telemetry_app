@@ -3,7 +3,7 @@
         {
             "table_name": "DATAPATH_TELEMETRY_JOB",
             "table_content": [
-                "72694b1c-6833-4c46-acde-52e2d6409314\t100000\thost\\b192.168.64.11\t60\t1\t200\t0\t{\"tag_sets\":[[{\"value\":[\"device-abc\",\"device-xxx\"],\"tag\":\"data_center\"}]]}\t[1000,10001]\t1"
+                "72694b1c-6833-4c46-acde-52e2d6409314\t100000\thost\\b192.168.64.11\t60\t1\t200\t0\t{\"tag_sets\":[[{\"value\":[\"group-xxg-tsgx-virtual1\",\"group-xxg-tsgx-virtual2\"],\"tag\":\"device_group\"}],[{\"value\":[\"center-nyj\",\"center-nyj-one\"],\"tag\":\"data_center\"}]]}\t[1000,10001]\t1"
             ]
         }
     ]

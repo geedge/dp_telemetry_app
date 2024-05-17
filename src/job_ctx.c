@@ -83,7 +83,7 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     bool valid_rule = maat_rule_parse(table_line, &telemetry_desc);
     if (valid_rule == false)
     {
-        dzlog_warn("parse maat rule failed.");
+        dzlog_info("not a valid rule.");
         return;
     }
 

@@ -80,6 +80,8 @@ void config_load()
 
     MESA_load_profile_string_def(config_path, "global", "device_group", g_conf->device_group,
                                  sizeof(g_conf->device_group), "");
+    MESA_load_profile_string_def(config_path, "global", "data_center", g_conf->data_center, sizeof(g_conf->data_center),
+                                 "");
 
     MESA_load_profile_string_def(config_path, "http_server", "listen_addr", g_conf->str_listen_addr,
                                  sizeof(g_conf->str_listen_addr), "127.0.0.1");

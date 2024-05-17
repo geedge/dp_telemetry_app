@@ -121,26 +121,26 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
         goto end;
     }
 
-    bool device_group_match = false;
+    bool device_group_or_date_center_match = false;
     if (strcasecmp(device_group, "{}") == 0)
     {
         dzlog_info("When device_group is empty, all devices are matched");
-        device_group_match = true;
-        goto device_group_match_end;
+        device_group_or_date_center_match = true;
+        goto device_group_or_date_center_match_end;
     }
 
     device_group_json = cJSON_Parse(device_group);
     if (device_group_json == NULL)
     {
         dzlog_error("parse to json failed:%s", device_group);
-        goto device_group_match_end;
+        goto device_group_or_date_center_match_end;
     }
 
     cJSON * tag_sets_item = cJSON_GetObjectItem(device_group_json, "tag_sets");
     if (!cJSON_IsArray(tag_sets_item))
     {
         dzlog_warn("tag_sets value is not array");
-        goto device_group_match_end;
+        goto device_group_or_date_center_match_end;
     }
 
     int tag_sets_array_size = cJSON_GetArraySize(tag_sets_item);
@@ -150,18 +150,36 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
         if (!cJSON_IsArray(tag_sets_item_i))
         {
             dzlog_warn("tag_sets value %d is not array", i);
-            goto device_group_match_end;
+            goto device_group_or_date_center_match_end;
         }
 
         int tag_sets_item_i_array_size = cJSON_GetArraySize(tag_sets_item_i);
         for (int j = 0; j < tag_sets_item_i_array_size; j++)
         {
             cJSON * inner_item = cJSON_GetArrayItem(tag_sets_item_i, j);
+
+            cJSON * tag_item = cJSON_GetObjectItem(inner_item, "tag");
+            const char * tag_key_str = cJSON_GetStringValue(tag_item);
+            const char * tag_val_str = NULL;
+            if (tag_key_str == NULL)
+            {
+                dzlog_warn("tag_sets %d no 'tag'", i);
+                continue;
+            }
+            else if (strcasecmp(tag_key_str, "device_group") == 0)
+            {
+                tag_val_str = conf->device_group;
+            }
+            else if (strcasecmp(tag_key_str, "data_center") == 0)
+            {
+                tag_val_str = conf->data_center;
+            }
+
             cJSON * inner_item_value = cJSON_GetObjectItem(inner_item, "value");
             if (!cJSON_IsArray(inner_item_value))
             {
                 dzlog_warn("tag_sets %d-%d 'value' is not array", i, j);
-                goto device_group_match_end;
+                continue;
             }
 
             int value_array_size = cJSON_GetArraySize(inner_item_value);
@@ -170,20 +188,21 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
                 cJSON * value_item_k = cJSON_GetArrayItem(inner_item_value, k);
                 if (cJSON_IsString(value_item_k))
                 {
-                    if (strcasecmp(conf->device_group, value_item_k->valuestring) == 0)
+                    if (strcasecmp(tag_val_str, value_item_k->valuestring) == 0)
                     {
-                        device_group_match = true;
-                        goto device_group_match_end;
+                        device_group_or_date_center_match = true;
+                        goto device_group_or_date_center_match_end;
                     }
                 }
             }
         }
     }
 
-device_group_match_end:
-    if (device_group_match == false)
+device_group_or_date_center_match_end:
+    if (device_group_or_date_center_match == false)
     {
-        dzlog_info("This rule does not apply to the current device(%s)", conf->device_group);
+        dzlog_info("This rule does not apply to the current center(%s) or device(%s)", conf->data_center,
+                   conf->device_group);
         goto end;
     }
 
