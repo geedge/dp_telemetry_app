@@ -123,8 +123,6 @@ void * dp_trace_process_thread(void * arg)
 
     marsio_thread_init(mr_instance);
 
-    zlog_category_t * kafak_dump_logger = kafka_dump_logger_get();
-
     unsigned int no_pkt_recv_cnt = 0;
     for (unsigned int qid_index = 0;; qid_index++)
     {
@@ -182,6 +180,7 @@ void * dp_trace_process_thread(void * arg)
 
                     if (conf->kafka_dump_to_log)
                     {
+                        zlog_category_t * kafak_dump_logger = kafka_dump_logger_get();
                         kafka_dump_to_log(kafak_dump_logger, (void *)data, size);
                     }
 
@@ -764,11 +763,11 @@ void arp_pkt_no_ip_verify(marsio_buff_t * mr_mbuf)
 
         if (strlen(trace_buff_info.inner_src_addr_str) != 0)
         {
-            dzlog_error("arp pkt has inner src ip:", trace_buff_info.inner_src_addr_str);
+            dzlog_error("arp pkt has inner src ip:%s", trace_buff_info.inner_src_addr_str);
         }
         if (strlen(trace_buff_info.inner_dst_addr_str) != 0)
         {
-            dzlog_error("arp pkt has inner dst ip:", trace_buff_info.inner_dst_addr_str);
+            dzlog_error("arp pkt has inner dst ip:%s", trace_buff_info.inner_dst_addr_str);
         }
     }
 
