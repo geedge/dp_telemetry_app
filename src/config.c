@@ -121,6 +121,10 @@ void config_load()
     MESA_load_profile_string_def(config_path, "maat", "maat_redis_port_range", g_conf->redis_port_range,
                                  sizeof(g_conf->redis_server), "6379");
     MESA_load_profile_int_def(config_path, "maat", "maat_redis_db_index", &(g_conf->redis_db_idx), 0);
+
+    MESA_load_profile_uint_def(config_path, "debug", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
+    MESA_load_profile_uint_def(config_path, "debug", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
+    MESA_load_profile_uint_def(config_path, "debug", "arp_pkt_has_ip_test", &(g_conf->arp_pkt_has_ip_test), 0);
 }
 
 void dynamic_config_load()
@@ -185,15 +189,6 @@ void dynamic_config_load()
 
         desc_i->measurement_type = DP_TRACE_MEASUREMENT_TYPE_TRACE;
     }
-
-    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
-    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
-    MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "arp_pkt_has_ip_test", &(g_conf->arp_pkt_has_ip_test),
-                               0);
-
-    dzlog_info("send_ctrlbuf:%u", g_conf->send_ctrlbuf);
-    dzlog_info("kafka_dump_to_log:%u", g_conf->kafka_dump_to_log);
-    dzlog_info("arp_pkt_has_ip_test:%u", g_conf->arp_pkt_has_ip_test);
     dzlog_info("Loading data path trace configuration file is completed.");
 }
 
