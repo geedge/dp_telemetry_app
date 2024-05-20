@@ -191,6 +191,9 @@ void dynamic_config_load()
     MESA_load_profile_uint_def(g_conf->dy_config_path, "debug", "arp_pkt_has_ip_test", &(g_conf->arp_pkt_has_ip_test),
                                0);
 
+    dzlog_info("send_ctrlbuf:%u", g_conf->send_ctrlbuf);
+    dzlog_info("kafka_dump_to_log:%u", g_conf->kafka_dump_to_log);
+    dzlog_info("arp_pkt_has_ip_test:%u", g_conf->arp_pkt_has_ip_test);
     dzlog_info("Loading data path trace configuration file is completed.");
 }
 

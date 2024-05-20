@@ -20,11 +20,8 @@ void logger_init()
     }
     zlog_env_is_init = 1;
 
-    if (conf->kafka_dump_to_log)
-    {
-        ret = zlog_init(conf->zlog_config_path);
-        DP_TRACE_VERIFY(ret != 0, "zlog init failed.");
-    }
+    ret = zlog_init(conf->zlog_config_path);
+    DP_TRACE_VERIFY(ret != 0, "zlog init failed.");
 }
 
 zlog_category_t * kafka_dump_logger_get()
