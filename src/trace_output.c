@@ -540,17 +540,29 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, "traffic_link_id");
     mpack_write_i32(&writer, trace_buff_info.traffic_link_id);
 
-    mpack_write_cstr(&writer, "source_ip");
-    mpack_write_cstr(&writer, trace_buff_info.inner_src_addr_str);
+    if (strlen(trace_buff_info.inner_src_addr_str) != 0)
+    {
+        mpack_write_cstr(&writer, "source_ip");
+        mpack_write_cstr(&writer, trace_buff_info.inner_src_addr_str);
+    }
 
-    mpack_write_cstr(&writer, "source_port");
-    mpack_write_i32(&writer, trace_buff_info.inner_src_port);
+    if (trace_buff_info.inner_src_port != 0)
+    {
+        mpack_write_cstr(&writer, "source_port");
+        mpack_write_i32(&writer, trace_buff_info.inner_src_port);
+    }
 
-    mpack_write_cstr(&writer, "destination_ip");
-    mpack_write_cstr(&writer, trace_buff_info.inner_dst_addr_str);
+    if (strlen(trace_buff_info.inner_dst_addr_str) != 0)
+    {
+        mpack_write_cstr(&writer, "destination_ip");
+        mpack_write_cstr(&writer, trace_buff_info.inner_dst_addr_str);
+    }
 
-    mpack_write_cstr(&writer, "destination_port");
-    mpack_write_i32(&writer, trace_buff_info.inner_dst_port);
+    if (trace_buff_info.inner_dst_port != 0)
+    {
+        mpack_write_cstr(&writer, "destination_port");
+        mpack_write_i32(&writer, trace_buff_info.inner_dst_port);
+    }
 
     unsigned int snaplen = trace_buff_info.snaplen;
     snaplen = (snaplen < marsio_buff_datalen(mr_mbuf)) ? snaplen : marsio_buff_datalen(mr_mbuf);
