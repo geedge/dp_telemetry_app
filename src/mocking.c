@@ -48,13 +48,29 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
 
     packet.traffic_link_id = mpack_node_i32(mpack_node_map_cstr(root, "traffic_link_id"));
 
-    mpack_node_copy_cstr(mpack_node_map_cstr(root, "source_ip"), packet.source_ip, sizeof(packet.source_ip));
+    mpack_node_t source_ip_node = mpack_node_map_cstr(root, "source_ip");
+    if (!mpack_node_is_nil(source_ip_node))
+    {
+        mpack_node_copy_cstr(source_ip_node, packet.source_ip, sizeof(packet.source_ip));
+    }
 
-    packet.source_port = mpack_node_i32(mpack_node_map_cstr(root, "source_port"));
+    mpack_node_t source_port_node = mpack_node_map_cstr(root, "source_port");
+    if (!mpack_node_is_nil(source_port_node))
+    {
+        packet.source_port = mpack_node_i32(source_port_node);
+    }
 
-    mpack_node_copy_cstr(mpack_node_map_cstr(root, "destination_ip"), packet.server_ip, sizeof(packet.server_ip));
+    mpack_node_t destination_ip_node = mpack_node_map_cstr(root, "destination_ip");
+    if (!mpack_node_is_nil(destination_ip_node))
+    {
+        mpack_node_copy_cstr(destination_ip_node, packet.server_ip, sizeof(packet.server_ip));
+    }
 
-    packet.server_port = mpack_node_i32(mpack_node_map_cstr(root, "destination_port"));
+    mpack_node_t destination_port_node = mpack_node_map_cstr(root, "destination_port");
+    if (!mpack_node_is_nil(destination_port_node))
+    {
+        packet.server_port = mpack_node_i32(destination_port_node);
+    }
 
     packet.packet = mpack_node_bin_data(mpack_node_map_cstr(root, "packet"));
 
@@ -87,7 +103,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
 
     if (strlen(packet.source_ip) == 0)
     {
-        zlog_warn(logger, "source_ip is empty");
+        zlog_debug(logger, "source_ip is empty");
     }
     else
     {
@@ -98,7 +114,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
 
     if (strlen(packet.server_ip) == 0)
     {
-        zlog_warn(logger, "server_ip is empty");
+        zlog_debug(logger, "server_ip is empty");
     }
     else
     {
