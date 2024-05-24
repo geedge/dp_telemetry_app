@@ -56,7 +56,7 @@ void config_load()
     int nr_io_cores = 0;
     nr_io_cores =
         MESA_load_profile_uint_range(config_path, "global", "iocore", sizeof(io_cores) / sizeof(io_cores[0]), io_cores);
-    for (unsigned int i = 0; i < nr_io_cores; i++)
+    for (int i = 0; i < nr_io_cores; i++)
     {
         CPU_SET(io_cores[i], &g_conf->cpu_set_io);
     }
@@ -103,6 +103,7 @@ void config_load()
                                  sizeof(g_conf->sasl_username), "");
     MESA_load_profile_string_def(config_path, "kafka", "sasl_password", g_conf->sasl_password,
                                  sizeof(g_conf->sasl_password), "");
+    MESA_load_profile_uint_def(config_path, "kafka", "queue_size", &g_conf->kafka_queue_size, 100000);
 
     MESA_load_profile_int_def(config_path, "maat", "maat_log_level", &(g_conf->maat_log_level), LOG_LEVEL_FATAL);
     MESA_load_profile_int_def(config_path, "maat", "maat_input_mode", &(g_conf->maat_input_mode), 0);
