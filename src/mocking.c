@@ -78,7 +78,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
 
     mpack_node_t measurements_val = mpack_node_map_cstr(root, "measurements");
     packet.measurements_num = mpack_node_array_length(mpack_node_map_cstr(root, "measurements"));
-    for (unsigned int i = 0; i < packet.measurements_num; i++)
+    for (int i = 0; i < packet.measurements_num; i++)
     {
         if (i >= 128)
         {
@@ -130,7 +130,7 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
         zlog_debug(logger, "measurements num is zero");
     }
 
-    for (unsigned int i = 0; i < packet.measurements_num; i++)
+    for (int i = 0; i < packet.measurements_num; i++)
     {
         zlog_debug(logger, "record %u:", i);
         zlog_debug(logger, "tv_sec %d", packet.record[i].tv_sec);

@@ -34,6 +34,7 @@ struct config
     char broker_list[1024];
     char sasl_username[MR_SYMBOL_MAX];
     char sasl_password[MR_SYMBOL_MAX];
+    uint32_t kafka_queue_size;
 
     // maat
     unsigned int maat_log_level;

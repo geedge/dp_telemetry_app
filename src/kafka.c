@@ -2,16 +2,21 @@
 #include "common.h"
 #include <errno.h>
 
-rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd)
+rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_username, const char * sasl_passwd,
+                                 uint32_t kafka_queue_size)
 {
     int ret;
     char kafka_errstr[1024] = {0};
     rd_kafka_t * handle = NULL;
     rd_kafka_conf_t * rconf = NULL;
 
+    char kafka_queue_size_str[10];
+    snprintf(kafka_queue_size_str, sizeof(kafka_queue_size_str), "%u", kafka_queue_size);
+
     rconf = rd_kafka_conf_new();
 
-    ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", "100000", kafka_errstr, sizeof(kafka_errstr));
+    ret = rd_kafka_conf_set(rconf, "queue.buffering.max.messages", kafka_queue_size_str, kafka_errstr,
+                            sizeof(kafka_errstr));
     if (ret != RD_KAFKA_CONF_OK)
     {
         dzlog_error("Error to set kafka \"queue.buffering.max.messages\", %s.", kafka_errstr);

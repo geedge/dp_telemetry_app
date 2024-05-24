@@ -87,7 +87,8 @@ void dp_trace_output_init()
         DP_TRACE_VERIFY(ret == 0, "pthread_mutex_init failed(ret = % d)", ret);
     }
 
-    kafka_handle = kafka_handle_create(conf->broker_list, conf->sasl_username, conf->sasl_password);
+    kafka_handle =
+        kafka_handle_create(conf->broker_list, conf->sasl_username, conf->sasl_password, conf->kafka_queue_size);
     kafka_topic = kafka_topic_new(kafka_handle, conf->topic_name, NULL);
 
     for (unsigned int i = 0; i < TELEMETRY_DIM(dp_trace_output); i++)
