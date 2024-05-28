@@ -18,3 +18,5 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
                           long argl, void * argp);
 void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp);
 void telemetry_job_uuid_get(job_bitmap_t job_id, unsigned char * uu);
+
+void job_desc_dump(const struct dp_trace_job_desc * desc);
