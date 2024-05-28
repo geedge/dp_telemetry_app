@@ -14,6 +14,12 @@
 #define MR_SYMBOL_MAX 128
 #endif
 
+#define TELEMETRY_INDEX_START 8
+#define TELEMETRY_INDEX_END DP_TRACE_JOB_NUM_MAX
+
+#define TRACE_INDEX_START 0
+#define TRACE_INDEX_END TELEMETRY_INDEX_START
+
 #ifndef likely
 #define likely(x) __builtin_expect(!!(x), 1)
 #endif /* likely */

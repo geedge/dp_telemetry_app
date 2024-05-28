@@ -153,9 +153,9 @@ void dynamic_config_load()
 
     g_conf->nr_desc = 0;
     memset(g_conf->desc, 0, sizeof(g_conf->desc));
-    for (int rule_index = 0; rule_index < DP_TRACE_JOB_NUM_MAX; rule_index++)
+    for (int rule_index = TRACE_INDEX_START; rule_index < TRACE_INDEX_END; rule_index++)
     {
-        unsigned int enable = 1;
+        unsigned int enable = 0;
         char bpf_expr[MR_BPF_EXPRESSION_MAX] = {};
         unsigned int pkt_cnt_max = 0;
         unsigned int sampling = 1;
@@ -166,12 +166,8 @@ void dynamic_config_load()
 
         MESA_load_profile_uint_nodef(g_conf->dy_config_path, dp_trace_section, "enable", &enable);
 
-        ret = MESA_load_profile_string_nodef(g_conf->dy_config_path, dp_trace_section, "bpf_expr", bpf_expr,
-                                             sizeof(bpf_expr));
-        if (ret < 0)
-        {
-            continue;
-        }
+        MESA_load_profile_string_nodef(g_conf->dy_config_path, dp_trace_section, "bpf_expr", bpf_expr,
+                                       sizeof(bpf_expr));
 
         MESA_load_profile_uint_nodef(g_conf->dy_config_path, dp_trace_section, "pkt_cnt_max", &pkt_cnt_max);
         MESA_load_profile_uint_nodef(g_conf->dy_config_path, dp_trace_section, "sampling", &sampling);
@@ -196,6 +192,14 @@ void dynamic_config_load()
 void dynamic_config_load_and_apply()
 {
     dynamic_config_load();
+    for (int i = 0; i < g_conf->nr_desc; i++)
+    {
+        if (strlen(g_conf->desc[i].bpf_expr) != 0)
+        {
+            dzlog_info("dump dp trace job desc.");
+            job_desc_dump(&g_conf->desc[i]);
+        }
+    }
     job_rule_apply(g_conf->desc, g_conf->nr_desc);
 }
 

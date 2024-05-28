@@ -415,6 +415,13 @@ void dp_trace_pcapng_merger(job_bitmap_t job_id)
     if (!is_file_exists(dp_trace_output[index].file_bak_path))
     {
         // Only one file, no need to merge
+        dzlog_info("without %s, no merge action is performed.", dp_trace_output[index].file_bak_path);
+        goto end;
+    }
+
+    if (dp_trace_output[index].pcapng == NULL)
+    {
+        dzlog_info("%s is not opened, no merge action is performed.", dp_trace_output[index].file_path);
         goto end;
     }
 

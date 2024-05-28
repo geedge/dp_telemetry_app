@@ -1,5 +1,6 @@
 #include "monit.h"
 #include "config.h"
+#include "job_ctx.h"
 #include <cjson/cJSON.h>
 #include <pthread.h>
 
@@ -23,6 +24,34 @@ struct record_saving_stat * record_saving_stat_point_get(unsigned int thread_id)
 {
     assert(thread_id < monit->nr_stat);
     return &monit->savint_stats[thread_id];
+}
+
+static cJSON * monit_current_job_running()
+{
+    struct cJSON * j_job_running_info = cJSON_CreateObject();
+
+    char job_runnig_str[512];
+    int len = snprintf(job_runnig_str, sizeof(job_runnig_str), "%s", "[");
+    for (int i = 0; i < DP_TRACE_JOB_NUM_MAX; i++)
+    {
+        job_bitmap_t job_id = index_to_job_id(i);
+        int uesd = is_job_id_used(job_id);
+
+        char * normal_format = "%d,";
+        char * last_format = "%d";
+
+        char * fromat = normal_format;
+        if (i == DP_TRACE_JOB_NUM_MAX - 1)
+        {
+            fromat = last_format;
+        }
+        len += snprintf(job_runnig_str + len, sizeof(job_runnig_str) - len, fromat, uesd);
+    }
+    len += snprintf(job_runnig_str + len, sizeof(job_runnig_str) - len, "%s", "]");
+
+    cJSON_AddStringToObject(j_job_running_info, "current_job_index", job_runnig_str);
+
+    return j_job_running_info;
 }
 
 static void monit_dump()
@@ -73,6 +102,8 @@ static void monit_dump()
     cJSON_AddNumberToObject(json_root, "save_to_file_failed_at_write_to_disk",
                             total_stat.save_to_file_failed_at_write_to_disk);
     cJSON_AddNumberToObject(json_root, "save_to_file_success", total_stat.save_to_file_success);
+
+    cJSON_AddItemToObject(json_root, "current_job", monit_current_job_running());
 
     char * str_json_print = cJSON_Print(json_root);
     FILE * fp_monit = fopen(conf->monit_file_path, "w");
