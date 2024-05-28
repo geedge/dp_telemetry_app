@@ -124,6 +124,8 @@ void config_load()
     MESA_load_profile_int_def(config_path, "maat", "maat_redis_db_index", &(g_conf->redis_db_idx), 0);
 
     MESA_load_profile_uint_def(config_path, "debug", "send_ctrlbuf", &g_conf->send_ctrlbuf, 0);
+    MESA_load_profile_uint_def(config_path, "debug", "send_invalid_traffic_link_id",
+                               &g_conf->send_invalid_traffic_link_id, 0);
     MESA_load_profile_uint_def(config_path, "debug", "kafka_dump_to_log", &(g_conf->kafka_dump_to_log), 0);
     MESA_load_profile_uint_def(config_path, "debug", "arp_pkt_has_ip_test", &(g_conf->arp_pkt_has_ip_test), 0);
 }

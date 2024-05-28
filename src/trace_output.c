@@ -545,8 +545,12 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
     mpack_write_cstr(&writer, "device_group");
     mpack_write_cstr(&writer, conf->device_group);
 
-    mpack_write_cstr(&writer, "traffic_link_id");
-    mpack_write_i32(&writer, trace_buff_info.traffic_link_id);
+    if (conf->send_invalid_traffic_link_id == 1 ||
+        (trace_buff_info.traffic_link_id != 0 && trace_buff_info.traffic_link_id != 65535))
+    {
+        mpack_write_cstr(&writer, "traffic_link_id");
+        mpack_write_i32(&writer, trace_buff_info.traffic_link_id);
+    }
 
     if (strlen(trace_buff_info.inner_src_addr_str) != 0)
     {

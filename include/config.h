@@ -57,6 +57,7 @@ struct config
 
     // debug
     unsigned int send_ctrlbuf;
+    unsigned int send_invalid_traffic_link_id;
     unsigned int kafka_dump_to_log;
     unsigned int arp_pkt_has_ip_test;
 };
