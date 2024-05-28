@@ -46,7 +46,11 @@ int kafka_dump_to_log(zlog_category_t * logger, const void * payload, size_t len
 
     mpack_node_copy_cstr(mpack_node_map_cstr(root, "device_group"), packet.device_group, sizeof(packet.device_group));
 
-    packet.traffic_link_id = mpack_node_i32(mpack_node_map_cstr(root, "traffic_link_id"));
+    mpack_node_t traffic_link_id_node = mpack_node_map_cstr(root, "traffic_link_id");
+    if (!mpack_node_is_nil(traffic_link_id_node))
+    {
+        packet.traffic_link_id = mpack_node_i32(traffic_link_id_node);
+    }
 
     mpack_node_t source_ip_node = mpack_node_map_cstr(root, "source_ip");
     if (!mpack_node_is_nil(source_ip_node))
