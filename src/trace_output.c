@@ -4,7 +4,6 @@
 #include "job_ctx.h"
 #include "kafka.h"
 #include "logger.h"
-#include "mocking.h"
 #include "monit.h"
 #include "pcapng.h"
 
@@ -575,6 +574,9 @@ static void dp_trace_decode_to_message_pack(marsio_buff_t * mr_mbuf, char ** dat
         mpack_write_cstr(&writer, "destination_port");
         mpack_write_i32(&writer, trace_buff_info.inner_dst_port);
     }
+
+    mpack_write_cstr(&writer, "egress_action");
+    mpack_write_i32(&writer, trace_buff_info.egress_action);
 
     unsigned int snaplen = trace_buff_info.snaplen;
     snaplen = (snaplen < marsio_buff_datalen(mr_mbuf)) ? snaplen : marsio_buff_datalen(mr_mbuf);

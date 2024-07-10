@@ -10,7 +10,6 @@ set(DP_TELEMETRY_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/kafka.c
     ${CMAKE_CURRENT_SOURCE_DIR}/maat.c
     ${CMAKE_CURRENT_SOURCE_DIR}/monit.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/mocking.c
     ${CMAKE_CURRENT_SOURCE_DIR}/http_serv.c
     ${CMAKE_CURRENT_SOURCE_DIR}/logger.c
     ${CMAKE_SOURCE_DIR}/support/mpack/mpack.c)
