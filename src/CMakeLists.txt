@@ -1,7 +1,3 @@
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
-include_directories(${CMAKE_SOURCE_DIR}/support/mpack)
-
 set(DP_TELEMETRY_SRC 
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c 
     ${CMAKE_CURRENT_SOURCE_DIR}/config.c 
@@ -15,7 +11,12 @@ set(DP_TELEMETRY_SRC
     ${CMAKE_SOURCE_DIR}/support/mpack/mpack.c)
 
 add_executable(${PROJECT_NAME} ${DP_TELEMETRY_SRC})
-target_link_libraries(${PROJECT_NAME} libpcapng libmarsio maatframe MESA_prof_load libevent-static rdkafka libcmocka libzlog libcjson uuid pthread pcap)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/support/mpack ${RDKAFKA_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_directories(${PROJECT_NAME} PRIVATE ${RDKAFKA_LIBRARY_DIRS})
+
+target_link_libraries(${PROJECT_NAME} libpcapng libmarsio maatframe MESA_prof_load libevent-static ${RDKAFKA_LIBRARIES} libcmocka libzlog libcjson uuid pthread pcap)
 
 # if(ENABLE_DEVELOP_MOCKING)
 #    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--wrap=kafka_handle_create,--wrap=kafka_topic_new,--wrap=kafka_produce)
