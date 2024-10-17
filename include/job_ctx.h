@@ -14,9 +14,9 @@ job_bitmap_t index_to_job_id(unsigned int index);
 int is_job_id_used(job_bitmap_t job_id);
 uint8_t job_id_role_get(job_bitmap_t job_id);
 
-void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line, void ** ad,
-                          long argl, void * argp);
-void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp);
+void telemetry_job_add_cb(const char * table_name, const char * key, const char * table_line, void ** ad, long argl,
+                          void * argp);
+void telemetry_job_del_cb(const char * table_name, void ** ad, long argl, void * argp);
 void telemetry_job_uuid_get(job_bitmap_t job_id, unsigned char * uu);
 
 void job_desc_dump(const struct dp_trace_job_desc * desc);

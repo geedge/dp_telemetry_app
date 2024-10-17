@@ -1,10 +1,7 @@
 
 ## 文档
 
-1. [Datapath Trace and Telemetry方案设计](https://docs.geedge.net/pages/viewpage.action?pageId=124754302)
-2. [Datapath Telemetry Job -- maat字段](https://docs.geedge.net/display/TSG/Datapath+Telemetry+Job)
-3. [Datapath Telemetry Record -- kafka发送内容](https://docs.geedge.net/pages/viewpage.action?pageId=129088240)
-4. [telemetry入门指北](https://docs.geedge.net/pages/viewpage.action?pageId=129100805)
+1. [telemetry入门](https://docs.geedge.net/pages/viewpage.action?pageId=129100805)
 
 ## 编译
 
