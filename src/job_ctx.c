@@ -71,8 +71,9 @@ void job_rule_apply(struct dp_trace_job_desc desc[], unsigned int nr_desc)
     }
 }
 
-void telemetry_job_add_cb(const char * table_name, int table_id, const char * key, const char * table_line, void ** ad,
-                          long argl, void * argp)
+void telemetry_job_add_cb(const char * table_name, const char * key, const char * table_line, void ** ad, long argl,
+                          void * argp)
+
 {
     struct dp_trace_telemetry_desc telemetry_desc = {};
     struct dp_trace_job_desc * job_desc = &telemetry_desc.job_desc;
@@ -102,7 +103,7 @@ void telemetry_job_add_cb(const char * table_name, int table_id, const char * ke
     *ad = &telemetry_descs[index];
 }
 
-void telemetry_job_del_cb(int table_id, void ** ad, long argl, void * argp)
+void telemetry_job_del_cb(const char * table_name, void ** ad, long argl, void * argp)
 {
     struct dp_trace_telemetry_desc * telemetry_desc = *ad;
     struct dp_trace_job_desc * job_desc = &telemetry_desc->job_desc;

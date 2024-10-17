@@ -103,40 +103,83 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
     unsigned int timeout = 0;
     unsigned int sampling = 0;
     unsigned int snaplen = 0;
-    unsigned int with_packet_capture = 0;
     char device_group[4096] = "";
-    char traffic_link_id[128] = "";
-    unsigned int is_valid = 1;
 
-    cJSON * device_group_json = NULL;
-    cJSON * traffic_json = NULL;
+    cJSON * table_json = NULL;
     int ret = 0;
 
-    dzlog_info("telemetry add maat parse config rule:%s", table_line);
-    ret = sscanf(table_line, "%s\t%u\t%127s\t%u\t%u\t%u\t%u\t%4095s\t%127s\t%u", uuid, &pkt_cnt_max, bpf_expr, &timeout,
-                 &sampling, &snaplen, &with_packet_capture, device_group, traffic_link_id, &is_valid);
-    if (ret != 10)
+    dzlog_info("telemetry parse config rule:%s", table_line);
+
+    table_json = cJSON_Parse(table_line);
+    if (table_json == NULL)
     {
-        dzlog_warn("maat parse config failed. Not enough fields:%s", table_line);
+        dzlog_error("Parse to json failed. table_json fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+
+    cJSON * uuid_item = cJSON_GetObjectItem(table_json, "job_id");
+    if (uuid_item == NULL)
+    {
+        dzlog_error("Parse to json failed. job_id fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+    snprintf(uuid, sizeof(uuid), "%s", uuid_item->valuestring);
+
+    cJSON * max_packet_item = cJSON_GetObjectItem(table_json, "max_packet");
+    if (max_packet_item == NULL)
+    {
+        dzlog_error("Parse to json failed. max_packet fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+    pkt_cnt_max = max_packet_item->valueint;
+
+    cJSON * filter_rule_item = cJSON_GetObjectItem(table_json, "filter_rule");
+    if (filter_rule_item == NULL)
+    {
+        dzlog_error("Parse to json failed. filter_rule fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+    snprintf(bpf_expr, sizeof(bpf_expr), "%s", filter_rule_item->valuestring);
+
+    cJSON * sampling_item = cJSON_GetObjectItem(table_json, "sampling");
+    if (sampling_item == NULL)
+    {
+        dzlog_error("Parse to json failed. sampling fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+    sampling = sampling_item->valueint;
+
+    cJSON * snaplen_item = cJSON_GetObjectItem(table_json, "snaplen");
+    if (snaplen_item == NULL)
+    {
+        dzlog_error("Parse to json failed. snaplen fields are missing.");
+        valid_rule = false;
+        goto end;
+    }
+    snaplen = snaplen_item->valueint;
+
+    cJSON * device_group_item = cJSON_GetObjectItem(table_json, "device_group");
+    if (device_group_item == NULL)
+    {
+        dzlog_error("Parse to json failed. device_group fields are missing.");
+        valid_rule = false;
         goto end;
     }
 
     bool device_group_or_date_center_match = false;
-    if (strcasecmp(device_group, "{}") == 0)
+    if (cJSON_GetArraySize(device_group_item) == 0)
     {
         dzlog_info("When device_group is empty, all devices are matched");
         device_group_or_date_center_match = true;
         goto device_group_or_date_center_match_end;
     }
 
-    device_group_json = cJSON_Parse(device_group);
-    if (device_group_json == NULL)
-    {
-        dzlog_error("parse to json failed:%s", device_group);
-        goto device_group_or_date_center_match_end;
-    }
-
-    cJSON * tag_sets_item = cJSON_GetObjectItem(device_group_json, "tag_sets");
+    cJSON * tag_sets_item = cJSON_GetObjectItem(device_group_item, "tag_sets");
     if (!cJSON_IsArray(tag_sets_item))
     {
         dzlog_warn("tag_sets value is not array");
@@ -146,27 +189,28 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
     int tag_sets_array_size = cJSON_GetArraySize(tag_sets_item);
     for (int i = 0; i < tag_sets_array_size; i++)
     {
-        cJSON * tag_sets_item_i = cJSON_GetArrayItem(tag_sets_item, i);
-        if (!cJSON_IsArray(tag_sets_item_i))
+        cJSON * tag_set_item = cJSON_GetArrayItem(tag_sets_item, i);
+        if (!cJSON_IsArray(tag_set_item))
         {
             dzlog_warn("tag_sets value %d is not array", i);
             goto device_group_or_date_center_match_end;
         }
 
-        int tag_sets_item_i_array_size = cJSON_GetArraySize(tag_sets_item_i);
-        for (int j = 0; j < tag_sets_item_i_array_size; j++)
+        int tag_set_item_array_size = cJSON_GetArraySize(tag_set_item);
+        for (int j = 0; j < tag_set_item_array_size; j++)
         {
-            cJSON * inner_item = cJSON_GetArrayItem(tag_sets_item_i, j);
+            cJSON * tag_set_j_item = cJSON_GetArrayItem(tag_set_item, j);
 
-            cJSON * tag_item = cJSON_GetObjectItem(inner_item, "tag");
-            const char * tag_key_str = cJSON_GetStringValue(tag_item);
-            const char * tag_val_str = NULL;
-            if (tag_key_str == NULL)
+            cJSON * tag_item = cJSON_GetObjectItem(tag_set_j_item, "tag");
+            if (tag_item == NULL)
             {
                 dzlog_warn("tag_sets %d no 'tag'", i);
                 continue;
             }
-            else if (strcasecmp(tag_key_str, "device_group") == 0)
+
+            const char * tag_key_str = cJSON_GetStringValue(tag_item);
+            const char * tag_val_str = NULL;
+            if (strcasecmp(tag_key_str, "device_group") == 0)
             {
                 tag_val_str = conf->device_group;
             }
@@ -175,17 +219,17 @@ bool maat_rule_parse(const char * table_line, struct dp_trace_telemetry_desc * t
                 tag_val_str = conf->data_center;
             }
 
-            cJSON * inner_item_value = cJSON_GetObjectItem(inner_item, "value");
-            if (!cJSON_IsArray(inner_item_value))
+            cJSON * valuer_item = cJSON_GetObjectItem(tag_set_j_item, "value");
+            if (!cJSON_IsArray(valuer_item))
             {
                 dzlog_warn("tag_sets %d-%d 'value' is not array", i, j);
                 continue;
             }
 
-            int value_array_size = cJSON_GetArraySize(inner_item_value);
+            int value_array_size = cJSON_GetArraySize(valuer_item);
             for (int k = 0; k < value_array_size; k++)
             {
-                cJSON * value_item_k = cJSON_GetArrayItem(inner_item_value, k);
+                cJSON * value_item_k = cJSON_GetArrayItem(valuer_item, k);
                 if (cJSON_IsString(value_item_k))
                 {
                     if (strcasecmp(tag_val_str, value_item_k->valuestring) == 0)
@@ -206,12 +250,6 @@ device_group_or_date_center_match_end:
         goto end;
     }
 
-    if (is_valid == 0)
-    {
-        dzlog_warn("rule is not valid:%s", table_line);
-        goto end;
-    }
-
     ret = uuid_parse(uuid, telemetry_desc->uuid);
     if (ret != 0)
     {
@@ -221,20 +259,20 @@ device_group_or_date_center_match_end:
 
     bpf_str_unescape_for_cm(bpf_expr, job_desc->bpf_expr);
 
-    traffic_json = cJSON_Parse(traffic_link_id);
-    if (traffic_json == NULL || !cJSON_IsArray(traffic_json))
+    cJSON * traffic_link_id_item = cJSON_GetObjectItem(table_json, "traffic_link_id");
+    if (traffic_link_id_item == NULL || !cJSON_IsArray(traffic_link_id_item))
     {
-        dzlog_error("parse traffic link id string to json failed. the string is:%s", traffic_link_id);
+        dzlog_error("parse traffic_link_id field failed.");
         goto end;
     }
 
-    int traffic_obj_array_size = cJSON_GetArraySize(traffic_json);
+    int traffic_obj_array_size = cJSON_GetArraySize(traffic_link_id_item);
     int id_num_max = (traffic_obj_array_size < DP_TRACE_TRAFFIC_LINK_ID_ARRAY_SIZE_MAX)
                          ? traffic_obj_array_size
                          : DP_TRACE_TRAFFIC_LINK_ID_ARRAY_SIZE_MAX;
     for (int i = 0; i < id_num_max; i++)
     {
-        cJSON * traffic_obj_item_i = cJSON_GetArrayItem(traffic_json, i);
+        cJSON * traffic_obj_item_i = cJSON_GetArrayItem(traffic_link_id_item, i);
         if (traffic_obj_item_i != NULL && cJSON_IsNumber(traffic_obj_item_i))
         {
             uint16_t value = (uint16_t)traffic_obj_item_i->valueint;
@@ -250,13 +288,6 @@ device_group_or_date_center_match_end:
     valid_rule = true;
 
 end:
-    if (device_group_json)
-    {
-        cJSON_Delete(device_group_json);
-    }
-    if (traffic_json)
-    {
-        cJSON_Delete(traffic_json);
-    }
+    cJSON_Delete(table_json);
     return valid_rule;
 }

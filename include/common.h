@@ -125,6 +125,31 @@ static inline void bpf_str_unescape_for_cm(const char * input, char * output)
             i += 1;
             output[j++] = '&';
         }
+        else if (input[i] == '\\' && input[i + 1] == '^')
+        {
+            i += 1;
+            output[j++] = '^';
+        }
+        else if (input[i] == '\\' && input[i + 1] == '$')
+        {
+            i += 1;
+            output[j++] = '$';
+        }
+        else if (input[i] == '\\' && input[i + 1] == '|')
+        {
+            i += 1;
+            output[j++] = '|';
+        }
+        else if (input[i] == '\\' && input[i + 1] == '(')
+        {
+            i += 1;
+            output[j++] = '(';
+        }
+        else if (input[i] == '\\' && input[i + 1] == ')')
+        {
+            i += 1;
+            output[j++] = ')';
+        }
         else
         {
             output[j++] = input[i];
