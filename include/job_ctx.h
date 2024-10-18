@@ -20,3 +20,4 @@ void telemetry_job_del_cb(const char * table_name, void ** ad, long argl, void *
 void telemetry_job_uuid_get(job_bitmap_t job_id, unsigned char * uu);
 
 void job_desc_dump(const struct dp_trace_job_desc * desc);
+int is_valid_bpf_expression(const char * expr);
