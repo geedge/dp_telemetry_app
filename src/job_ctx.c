@@ -6,6 +6,7 @@
 
 #include <MESA/maat.h>
 #include <cjson/cJSON.h>
+#include <pcap.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -82,6 +83,13 @@ void telemetry_job_add_cb(const char * table_name, const char * key, const char 
     if (valid_rule == false)
     {
         dzlog_info("not a valid rule.");
+        return;
+    }
+
+    int valid_bpf_expr = is_valid_bpf_expression(job_desc->bpf_expr);
+    if (valid_bpf_expr < 0)
+    {
+        dzlog_info("not a valid bpf expr: %s", job_desc->bpf_expr);
         return;
     }
 
@@ -193,4 +201,19 @@ void job_desc_dump(const struct dp_trace_job_desc * desc)
     }
     len += snprintf(traffic_link_id_str + len, sizeof(traffic_link_id_str) - len, "%s", "]");
     dzlog_info("    traffic_link_ids:%s", traffic_link_id_str);
+}
+
+int is_valid_bpf_expression(const char * expr)
+{
+    int ret = 0;
+    pcap_t * pcap_handle = NULL;
+    struct bpf_program fp = {};
+
+    pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
+    if (pcap_compile(pcap_handle, &fp, expr, 0, PCAP_NETMASK_UNKNOWN) < 0)
+    {
+        dzlog_info("pcap_compile execution failed: %s", pcap_geterr(pcap_handle));
+        ret = -1;
+    }
+    return ret;
 }
