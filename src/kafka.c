@@ -78,7 +78,7 @@ rd_kafka_t * kafka_handle_create(const char * brokerlist, const char * sasl_user
 
     if (rd_kafka_brokers_add(handle, brokerlist) == 0)
     {
-        dzlog_error("Error to add kakfa bokers.");
+        dzlog_error("Error to add kakfa brokers.brokerlist is: %s", brokerlist);
         goto error;
     }
 
