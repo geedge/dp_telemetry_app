@@ -95,7 +95,7 @@ void config_load()
         printf("SLED_IP environment variable does not exist.\n");
     }
 
-    MESA_load_profile_string_def(config_path, "kafka", "borker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
+    MESA_load_profile_string_def(config_path, "kafka", "broker_list", g_conf->broker_list, sizeof(g_conf->broker_list),
                                  "");
     MESA_load_profile_string_def(config_path, "kafka", "topic_name", g_conf->topic_name, sizeof(g_conf->topic_name),
                                  "");
