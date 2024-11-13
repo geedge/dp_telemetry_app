@@ -44,12 +44,31 @@ set_property(TARGET libevent-static-pthreads PROPERTY INTERFACE_INCLUDE_DIRECTOR
 
 
 ##### marsio
+set(COREI7 "corei7")
+set(AARCH64 "aarch64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+    set(MACHINE ${COREI7})
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+    set(MACHINE ${AARCH64})
+else()
+	message(FATAL_ERROR "${CMAKE_SYSTEM_PROCESSOR} processor is not currently supported")
+endif()
+
+if($ENV{CI} STREQUAL "true")
+    set(CI_GITLAB_USER $ENV{CI_GITLAB_USER})
+    set(CI_GITLAB_PASSWORD $ENV{CI_GITLAB_PASSWORD})
+    set(GIT_REPOSITORY https://${CI_GITLAB_USER}:${CI_GITLAB_PASSWORD}@git.mesalab.cn/MESA_Platform/marsio.git)
+    message(STATUS "Currently in the gitlab ci environment.")
+else()
+    set(GIT_REPOSITORY git@git.mesalab.cn:MESA_Platform/marsio.git)
+endif()
+
 ExternalProject_Add(marsio PREFIX marsio
-            GIT_REPOSITORY git@git.mesalab.cn:MESA_Platform/marsio.git
+            GIT_REPOSITORY ${GIT_REPOSITORY}
             GIT_TAG dev-4.8
             CONFIGURE_COMMAND 
                 COMMAND mkdir -p build
-                COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/build ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..
+                COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/build ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DMACHINE=${MACHINE} ..
             BUILD_COMMAND 
                 COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/build make
             INSTALL_COMMAND ""

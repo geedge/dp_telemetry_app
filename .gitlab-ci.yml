@@ -1,69 +1,142 @@
 variables:
     GIT_STRATEGY: "clone"
-    BUILD_IMAGE_CENTOS8: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:dpdk-21-11-mlx5-el8"
+    BUILD_IMAGE_CENTOS8_X86_64: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:dpdk-21-11-mlx5-el8"
+    BUILD_IMAGE_CENTOS9_AARCH64: "git.mesalab.cn:7443/mesa_platform/marsio-build-env:rocky9-aarch64"
     ROOT_DIR: /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_PATH
 
 stages:
     - build
     - deploy
 
-.build_before_script:
+default:
     before_script:
-        - mkdir -p ~/.ssh
-        - eval $(ssh-agent -s)
-        - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-        - chmod 644 ~/.ssh/config
-        - ssh-add <(echo "$MARSIO_PRIVATE_KEY")
-        - cp $CI_PROJECT_DIR/ci/el8.repo.internal.geedge.net.repo /etc/yum.repos.d
-        - yum install -y libmaatframe-devel libMESA_prof_load-devel
-        - yum install -y libuuid-devel librdkafka-devel
-        - pip3 install msgpack
+        - bash $CI_PROJECT_DIR/ci/env_setup.sh
         - mkdir -p /tmp/padding_for_CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX/$CI_PROJECT_NAMESPACE/
         - ln -s $CI_PROJECT_DIR $ROOT_DIR
         - cd $ROOT_DIR
 
-.build:
-    extends: .build_before_script
-    image: ${BUILD_IMAGE_CENTOS8}
+########################## x86_64 ############################
+build_x86_64:
+    stage: build
+    image: ${BUILD_IMAGE_CENTOS8_X86_64}
     tags:
         - share
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
     script:
         - mkdir -p build
         - cd build
         - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         - make VERBOSE=1
-        - if [[ "${ENABLE_PACKAGE}" == "True" ]]; then
-                make package VERBOSE=1;
-                cp ~/rpm_upload_tools.py ./;
-                python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
-          else
-                echo "no need to execute the deploy script";
-          fi
-
-build:
-    stage: build
-    extends: .build
-    parallel:
-        matrix:
-            - BUILD_TYPE: ["RelWithDebInfo"]
     rules:
         - if: $CI_COMMIT_TAG
           when: never
+        - if: $CI_COMMIT_BRANCH =~ /^dev.*$/
+          when: never
         - if: $CI_COMMIT_BRANCH
 
-deploy:
+deploy_testing_for_x86_64:
     stage: deploy
-    extends: .build
+    image: ${BUILD_IMAGE_CENTOS8_X86_64}
+    tags:
+        - share
     variables:
-        ENABLE_PACKAGE: "True"
+        PULP3_REPO_NAME: "platform-testing-x86_64.el8"
+        PULP3_DIST_NAME: "platform-testing-x86_64.el8"
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make package VERBOSE=1;
+        - cp ~/rpm_upload_tools.py ./;
+        - python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
+    rules:
+        - if: $CI_COMMIT_BRANCH =~ /^dev.*$/
+
+deploy_stable_for_x86_64:
+    stage: deploy
+    image: ${BUILD_IMAGE_CENTOS8_X86_64}
+    tags:
+        - share
+    variables:
         PULP3_REPO_NAME: "platform-stable-x86_64.el8"
         PULP3_DIST_NAME: "platform-stable-x86_64.el8"
     parallel:
         matrix:
             - BUILD_TYPE: ["RelWithDebInfo"]
-    artifacts:
-        name: "dp_trace_telemetry-$BUILD_TYPE-$CI_COMMIT_REF_NAME"
-        paths:
-            - build/*.rpm
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make package VERBOSE=1;
+        - cp ~/rpm_upload_tools.py ./;
+        - python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
+    rules:
+        - if: $CI_COMMIT_TAG
+
+########################## aarch64 ############################
+build_aarch64:
+    stage: build
+    image: ${BUILD_IMAGE_CENTOS9_AARCH64}
+    tags: 
+        - tsg-os-builder-aarch64
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make VERBOSE=1
+    rules:
+        - if: $CI_COMMIT_TAG
+          when: never
+        - if: $CI_COMMIT_BRANCH =~ /^dev.*$/
+          when: never
+        - if: $CI_COMMIT_BRANCH
+
+deploy_testing_for_aarch64:
+    stage: deploy
+    image: ${BUILD_IMAGE_CENTOS9_AARCH64}
+    tags: 
+        - tsg-os-builder-aarch64
+    variables:
+        PULP3_REPO_NAME: "platform-testing-aarch64.el9"
+        PULP3_DIST_NAME: "platform-testing-aarch64.el9"
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make package VERBOSE=1;
+        - cp ~/rpm_upload_tools.py ./;
+        - python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
+    rules:
+        - if: $CI_COMMIT_BRANCH =~ /^dev.*$/
+
+deploy_stable_for_aarch64:
+    stage: deploy
+    image: ${BUILD_IMAGE_CENTOS9_AARCH64}
+    tags: 
+        - tsg-os-builder-aarch64
+    variables:
+        PULP3_REPO_NAME: "platform-stable-aarch64.el9"
+        PULP3_DIST_NAME: "platform-stable-aarch64.el9"
+    parallel:
+        matrix:
+            - BUILD_TYPE: ["RelWithDebInfo"]
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake3 .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        - make package VERBOSE=1;
+        - cp ~/rpm_upload_tools.py ./;
+        - python3 rpm_upload_tools.py ${PULP3_REPO_NAME} ${PULP3_DIST_NAME} *.rpm;
     rules:
         - if: $CI_COMMIT_TAG
